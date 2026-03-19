@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from functools import lru_cache
 
 from openai import OpenAI
 
@@ -57,9 +58,117 @@ class OpenAILLMProvider(LLMProvider):
         return completion.choices[0].message.content or ""
 
 
+class LMStudioLLMProvider(LLMProvider):
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+        self.client = OpenAI(base_url=settings.lm_studio_base_url, api_key="lm-studio")
+
+    def reply(
+        self,
+        conversation: ConversationSummary,
+        history: list[MessageRecord],
+        prompt: PersonaSnapshot,
+        user_input: str,
+    ) -> str:
+        messages = [{"role": "system", "content": prompt.system_prompt}]
+        for item in history[-12:]:
+            messages.append({"role": item.role, "content": item.content_text})
+        messages.append({"role": "user", "content": user_input})
+
+        completion = self.client.chat.completions.create(
+            model=self.settings.llm_model,
+            temperature=prompt.temperature,
+            messages=messages,
+        )
+        return completion.choices[0].message.content or ""
+
+
+class LocalLlamaCppProvider(LLMProvider):
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+        try:
+            from llama_cpp import Llama
+        except Exception as exc:
+            raise RuntimeError(
+                "llama-cpp-python is not installed. Install it with `pip install -r requirements-local-llm.txt`."
+            ) from exc
+
+        model_path = settings.local_llm_model_path
+        if not model_path:
+            raise RuntimeError("LOCAL_LLM_MODEL_PATH is required when llm_provider=llama_cpp")
+        if not model_path.is_file():
+            raise RuntimeError(f"LOCAL_LLM_MODEL_PATH does not exist: {model_path}")
+
+        kwargs: dict[str, object] = {
+            "model_path": str(model_path),
+            "n_ctx": settings.local_llm_n_ctx,
+            "n_threads": settings.local_llm_n_threads,
+            "n_gpu_layers": settings.local_llm_n_gpu_layers,
+            "verbose": False,
+        }
+        if settings.local_llm_chat_format:
+            kwargs["chat_format"] = settings.local_llm_chat_format
+
+        self.client = Llama(**kwargs)
+
+    def reply(
+        self,
+        conversation: ConversationSummary,
+        history: list[MessageRecord],
+        prompt: PersonaSnapshot,
+        user_input: str,
+    ) -> str:
+        messages = [{"role": "system", "content": prompt.system_prompt}]
+        for item in history[-12:]:
+            messages.append({"role": item.role, "content": item.content_text})
+        messages.append({"role": "user", "content": user_input})
+
+        completion = self.client.create_chat_completion(
+            messages=messages,
+            temperature=prompt.temperature,
+            max_tokens=self.settings.local_llm_max_tokens,
+        )
+        content = completion["choices"][0]["message"]["content"]
+        return content or ""
+
+
 def build_llm_provider(settings: Settings) -> LLMProvider:
     if settings.llm_provider == "openai":
         if not settings.openai_api_key:
             raise RuntimeError("OPENAI_API_KEY is required when llm_provider=openai")
         return OpenAILLMProvider(settings)
+    if settings.llm_provider == "lm_studio":
+        return LMStudioLLMProvider(settings)
+    if settings.llm_provider == "llama_cpp":
+        return LocalLlamaCppProvider(settings)
     return MockLLMProvider()
+
+
+class LLMProviderRegistry:
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+        self._providers: dict[str, LLMProvider] = {}
+        self._provider_models: dict[str, str] = {
+            "openai": "gpt-4o-mini",
+            "lm_studio": settings.lm_studio_model,
+            "llama_cpp": settings.llm_model,
+            "mock": settings.llm_model,
+        }
+
+    def get(self, provider_name: str) -> LLMProvider:
+        key = (provider_name or self.settings.llm_provider).lower()
+        if key in self._providers:
+            return self._providers[key]
+
+        provider = self._build(key)
+        self._providers[key] = provider
+        return provider
+
+    def _build(self, provider_name: str) -> LLMProvider:
+        scoped = self.settings.model_copy(
+            update={
+                "llm_provider": provider_name,
+                "llm_model": self._provider_models.get(provider_name, self.settings.llm_model),
+            }
+        )
+        return build_llm_provider(scoped)

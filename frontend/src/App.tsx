@@ -4,6 +4,7 @@ import { api } from "./api/client";
 import type {
   ChatMode,
   ConversationSummary,
+  LLMProvider,
   Message,
   Persona,
   PersonaSnapshot,
@@ -24,6 +25,8 @@ const blankPersona = {
   updated_at: ""
 };
 
+const LLM_PROVIDER_STORAGE_KEY = "personatalk:selected-llm-provider";
+
 export default function App() {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
@@ -34,6 +37,14 @@ export default function App() {
   const [draftPrompt, setDraftPrompt] = useState(blankPersona.system_prompt);
   const [draftTemperature, setDraftTemperature] = useState(blankPersona.temperature);
   const [draftVoice, setDraftVoice] = useState<VoicePreference>(blankPersona.voice_preference);
+  const [llmProvider, setLLMProvider] = useState<LLMProvider>(() => {
+    try {
+      const stored = window.localStorage.getItem(LLM_PROVIDER_STORAGE_KEY);
+      return stored === "openai" || stored === "llama_cpp" || stored === "lm_studio" ? stored : "llama_cpp";
+    } catch {
+      return "llama_cpp";
+    }
+  });
   const [draftMessage, setDraftMessage] = useState("");
   const [mode, setMode] = useState<ChatMode>("text");
   const [search, setSearch] = useState("");
@@ -52,6 +63,14 @@ export default function App() {
     }, 180);
     return () => clearTimeout(timeout);
   }, [search]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LLM_PROVIDER_STORAGE_KEY, llmProvider);
+    } catch {
+      // Ignore localStorage failures and keep the app usable.
+    }
+  }, [llmProvider]);
 
   async function bootstrap() {
     try {
@@ -99,6 +118,7 @@ export default function App() {
         setDraftPrompt(conversation.persona_snapshot.system_prompt);
         setDraftTemperature(conversation.persona_snapshot.temperature);
         setDraftVoice(conversation.persona_snapshot.voice_preference);
+        setLLMProvider(conversation.llm_provider);
         setSelectedPersonaId(conversation.persona_id);
       }
     } catch (err) {
@@ -125,6 +145,7 @@ export default function App() {
       title: titleSeed.slice(0, 48),
       persona_id: selectedPersonaId,
       persona_snapshot: currentSnapshot(),
+      llm_provider: llmProvider,
       mode: initialMode
     });
     setActiveConversationId(conversation.id);
@@ -145,6 +166,7 @@ export default function App() {
         conversation_id: conversationId,
         content_text: draftMessage,
         mode,
+        llm_provider_override: llmProvider,
         system_prompt_override: currentSnapshot().system_prompt,
         temperature_override: currentSnapshot().temperature,
         voice_preference_override: currentSnapshot().voice_preference
@@ -173,7 +195,8 @@ export default function App() {
       const response = await api.sendVoiceMessage(conversationId, audioBlob, {
         systemPrompt: currentSnapshot().system_prompt,
         temperature: currentSnapshot().temperature,
-        voicePreference: currentSnapshot().voice_preference
+        voicePreference: currentSnapshot().voice_preference,
+        llmProvider
       });
       setMessages((current) => [...current, response.user_message, response.assistant_message]);
       await refreshAfterReply(response.conversation);
@@ -186,6 +209,7 @@ export default function App() {
 
   async function refreshAfterReply(conversation: ConversationSummary) {
     setMode(conversation.mode);
+    setLLMProvider(conversation.llm_provider);
     setConversations((current) => [conversation, ...current.filter((item) => item.id !== conversation.id)]);
   }
 
@@ -280,6 +304,7 @@ export default function App() {
       <ChatPane
         title={activeConversation?.title ?? "New conversation"}
         mode={mode}
+        llmProvider={llmProvider}
         messages={messages}
         draft={draftMessage}
         loading={loading}
@@ -308,6 +333,7 @@ export default function App() {
         draftPrompt={draftPrompt}
         draftTemperature={draftTemperature}
         draftVoice={draftVoice}
+        llmProvider={llmProvider}
         onSelectPersona={(personaId) => {
           const persona = personas.find((item) => item.id === personaId);
           if (persona) {
@@ -320,6 +346,7 @@ export default function App() {
           if (field === "temperature") setDraftTemperature(Number(value));
           if (field === "voice_preference") setDraftVoice(value as VoicePreference);
         }}
+        onLLMProviderChange={setLLMProvider}
         onSavePersona={() => {
           void handleSavePersona();
         }}

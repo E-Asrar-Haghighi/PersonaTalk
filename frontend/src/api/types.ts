@@ -1,6 +1,7 @@
 export type VoicePreference = "male" | "female";
 export type ChatMode = "text" | "voice" | "mixed";
 export type Role = "user" | "assistant" | "system";
+export type LLMProvider = "openai" | "llama_cpp" | "lm_studio";
 
 export interface Persona {
   id: string;
@@ -25,6 +26,7 @@ export interface ConversationSummary {
   persona_id: string | null;
   persona_name: string | null;
   persona_snapshot: PersonaSnapshot;
+  llm_provider: LLMProvider;
   temperature: number;
   voice_preference: VoicePreference;
   mode: ChatMode;

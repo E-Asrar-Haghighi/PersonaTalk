@@ -1,7 +1,7 @@
 from functools import lru_cache
 
 from ..config import get_settings
-from ..providers.llm import build_llm_provider
+from ..providers.llm import LLMProviderRegistry
 from ..providers.speech import build_stt_provider, build_tts_provider
 from ..repositories.conversations import ConversationRepository
 from ..repositories.messages import MessageRepository
@@ -23,7 +23,7 @@ def get_chat_service() -> ChatService:
         conversation_repository=ConversationRepository(),
         message_repository=MessageRepository(),
         persona_repository=PersonaRepository(),
-        llm_provider=build_llm_provider(settings),
+        llm_registry=LLMProviderRegistry(settings),
         stt_provider=build_stt_provider(settings),
         tts_provider=build_tts_provider(settings),
     )

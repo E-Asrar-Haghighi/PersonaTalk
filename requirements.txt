@@ -7,6 +7,7 @@ pykokoro==0.6.5
 python-multipart==0.0.20
 requests==2.32.3
 charset-normalizer==3.4.1
+chardet==5.2.0
 soundfile==0.13.1
 urllib3==2.3.0
 uvicorn[standard]==0.32.1

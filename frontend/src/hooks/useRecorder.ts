@@ -5,12 +5,20 @@ export interface AudioInputDevice {
   label: string;
 }
 
+const RECORDER_DEVICE_KEY = "personatalk:selected-mic-id";
+
 export function useRecorder() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [devices, setDevices] = useState<AudioInputDevice[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>(() => {
+    try {
+      return window.localStorage.getItem(RECORDER_DEVICE_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
 
   useEffect(() => {
     void refreshDevices();
@@ -26,6 +34,18 @@ export function useRecorder() {
       mediaDevices?.removeEventListener?.("devicechange", handleDeviceChange);
     };
   }, []);
+
+  useEffect(() => {
+    try {
+      if (selectedDeviceId) {
+        window.localStorage.setItem(RECORDER_DEVICE_KEY, selectedDeviceId);
+      } else {
+        window.localStorage.removeItem(RECORDER_DEVICE_KEY);
+      }
+    } catch {
+      // Ignore localStorage failures and keep recorder usable.
+    }
+  }, [selectedDeviceId]);
 
   async function start() {
     const stream = await navigator.mediaDevices.getUserMedia({

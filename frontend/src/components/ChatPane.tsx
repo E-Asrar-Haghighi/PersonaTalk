@@ -1,9 +1,10 @@
-import type { ChatMode, Message } from "../api/types";
+import type { ChatMode, LLMProvider, Message } from "../api/types";
 import type { AudioInputDevice } from "../hooks/useRecorder";
 
 interface Props {
   title: string;
   mode: ChatMode;
+  llmProvider: LLMProvider;
   messages: Message[];
   draft: string;
   loading: boolean;
@@ -24,6 +25,7 @@ export function ChatPane(props: Props) {
   const {
     title,
     mode,
+    llmProvider,
     messages,
     draft,
     loading,
@@ -45,7 +47,16 @@ export function ChatPane(props: Props) {
       <div className="panel-header">
         <div>
           <h1>{title}</h1>
-          <p>Switch between text and voice in the same thread.</p>
+          <p>
+            Switch between text and voice in the same thread.
+            <span className="model-badge">
+              {llmProvider === "openai"
+                ? "Model: GPT-4o mini"
+                : llmProvider === "lm_studio"
+                  ? "Model: LM Studio Local"
+                  : "Model: Local GGUF"}
+            </span>
+          </p>
         </div>
         <div className="mode-toggle">
           {(["text", "voice", "mixed"] as ChatMode[]).map((value) => (

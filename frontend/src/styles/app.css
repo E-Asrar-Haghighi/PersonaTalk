@@ -67,6 +67,18 @@ button {
   font-size: 0.92rem;
 }
 
+.model-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #1f2f44;
+  color: white;
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+}
+
 .sidebar,
 .persona-panel {
   padding-bottom: 20px;

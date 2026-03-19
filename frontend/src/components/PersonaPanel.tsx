@@ -1,4 +1,4 @@
-import type { Persona, VoicePreference } from "../api/types";
+import type { LLMProvider, Persona, VoicePreference } from "../api/types";
 
 interface Props {
   personas: Persona[];
@@ -7,8 +7,10 @@ interface Props {
   draftPrompt: string;
   draftTemperature: number;
   draftVoice: VoicePreference;
+  llmProvider: LLMProvider;
   onSelectPersona: (personaId: string) => void;
   onFieldChange: (field: "name" | "system_prompt" | "temperature" | "voice_preference", value: string | number) => void;
+  onLLMProviderChange: (provider: LLMProvider) => void;
   onSavePersona: () => void;
   onCreatePersona: () => void;
   onDeletePersona: () => void;
@@ -22,8 +24,10 @@ export function PersonaPanel(props: Props) {
     draftPrompt,
     draftTemperature,
     draftVoice,
+    llmProvider,
     onSelectPersona,
     onFieldChange,
+    onLLMProviderChange,
     onSavePersona,
     onCreatePersona,
     onDeletePersona
@@ -83,6 +87,15 @@ export function PersonaPanel(props: Props) {
         <select value={draftVoice} onChange={(event) => onFieldChange("voice_preference", event.target.value)}>
           <option value="female">Female</option>
           <option value="male">Male</option>
+        </select>
+      </label>
+
+      <label>
+        Model
+        <select value={llmProvider} onChange={(event) => onLLMProviderChange(event.target.value as LLMProvider)}>
+          <option value="openai">GPT-4o mini</option>
+          <option value="lm_studio">LM Studio Local</option>
+          <option value="llama_cpp">Local GGUF</option>
         </select>
       </label>
 

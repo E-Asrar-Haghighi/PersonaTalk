@@ -20,6 +20,7 @@ class ConversationCreate(BaseModel):
     title: str = Field(min_length=1, max_length=160)
     persona_id: str | None = None
     persona_snapshot: PersonaSnapshot
+    llm_provider: str = "openai"
     mode: Mode = "text"
 
 
@@ -28,6 +29,7 @@ class ConversationUpdate(BaseModel):
     mode: Mode | None = None
     persona_id: str | None = None
     persona_snapshot: PersonaSnapshot | None = None
+    llm_provider: str | None = None
 
 
 class ConversationSummary(BaseModel):
@@ -36,6 +38,7 @@ class ConversationSummary(BaseModel):
     persona_id: str | None = None
     persona_name: str | None = None
     persona_snapshot: PersonaSnapshot
+    llm_provider: str
     temperature: float
     voice_preference: Literal["male", "female"]
     mode: Mode
@@ -48,6 +51,7 @@ class MessageCreate(BaseModel):
     conversation_id: str
     content_text: str = Field(min_length=1)
     mode: Mode = "text"
+    llm_provider_override: str | None = None
     system_prompt_override: str | None = None
     temperature_override: float | None = Field(default=None, ge=0.0, le=2.0)
     voice_preference_override: Literal["male", "female"] | None = None

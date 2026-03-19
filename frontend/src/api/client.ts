@@ -4,6 +4,7 @@ import type {
   Persona,
   PersonaSnapshot,
   SendMessageResponse,
+  LLMProvider,
   VoicePreference,
   VoiceReplyResponse
 } from "./types";
@@ -48,7 +49,13 @@ export const api = {
   deletePersona: (personaId: string) => request<void>(`/personas/${personaId}`, { method: "DELETE" }),
   listConversations: (query = "") =>
     request<ConversationSummary[]>(`/conversations${query ? `?q=${encodeURIComponent(query)}` : ""}`),
-  createConversation: (payload: { title: string; persona_id: string | null; persona_snapshot: PersonaSnapshot; mode: string }) =>
+  createConversation: (payload: {
+    title: string;
+    persona_id: string | null;
+    persona_snapshot: PersonaSnapshot;
+    llm_provider: LLMProvider;
+    mode: string;
+  }) =>
     request<ConversationSummary>("/conversations", { method: "POST", body: JSON.stringify(payload) }),
   getMessages: (conversationId: string) => request<Message[]>(`/conversations/${conversationId}/messages`),
   updateConversation: (conversationId: string, payload: object) =>
@@ -58,6 +65,7 @@ export const api = {
     conversation_id: string;
     content_text: string;
     mode: string;
+    llm_provider_override: LLMProvider;
     system_prompt_override: string;
     temperature_override: number;
     voice_preference_override: VoicePreference;
@@ -69,6 +77,7 @@ export const api = {
       systemPrompt: string;
       temperature: number;
       voicePreference: VoicePreference;
+      llmProvider: LLMProvider;
     }
   ) => {
     const formData = new FormData();
@@ -76,6 +85,7 @@ export const api = {
     formData.append("system_prompt_override", overrides.systemPrompt);
     formData.append("temperature_override", String(overrides.temperature));
     formData.append("voice_preference_override", overrides.voicePreference);
+    formData.append("llm_provider_override", overrides.llmProvider);
 
     const response = await fetch(`${API_BASE}/voice/${conversationId}`, {
       method: "POST",
