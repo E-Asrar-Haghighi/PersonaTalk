@@ -263,6 +263,19 @@ button {
   margin-top: 12px;
 }
 
+.persona-actions {
+  justify-content: flex-start;
+  padding: 0 20px;
+}
+
+.persona-actions .primary-button {
+  flex: 1;
+}
+
+.persona-actions .danger-button {
+  min-width: 132px;
+}
+
 .mic-access-banner {
   display: flex;
   justify-content: space-between;
