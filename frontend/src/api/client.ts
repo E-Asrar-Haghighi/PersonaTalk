@@ -9,7 +9,7 @@ import type {
   VoiceReplyResponse
 } from "./types";
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000/api";
+export const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {

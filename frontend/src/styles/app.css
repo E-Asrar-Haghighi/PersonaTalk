@@ -263,6 +263,37 @@ button {
   margin-top: 12px;
 }
 
+.mic-access-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 155, 102, 0.22);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 214, 170, 0.75), transparent 38%),
+    linear-gradient(135deg, rgba(255, 247, 236, 0.98) 0%, rgba(255, 233, 210, 0.94) 100%);
+  color: #5a3c28;
+  box-shadow: 0 14px 34px rgba(208, 129, 74, 0.14);
+}
+
+.mic-access-banner span {
+  max-width: 34rem;
+  line-height: 1.45;
+}
+
+.mic-access-banner .secondary-button {
+  background: linear-gradient(135deg, #ff9560 0%, #ffb36e 100%);
+  color: white;
+  box-shadow: 0 10px 24px rgba(233, 137, 79, 0.24);
+}
+
+.mic-access-banner .secondary-button:hover {
+  filter: brightness(1.03);
+}
+
 .voice-device-row {
   margin-top: 12px;
 }
@@ -365,5 +396,10 @@ button {
 
   .message {
     max-width: 100%;
+  }
+
+  .mic-access-banner {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

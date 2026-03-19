@@ -6,12 +6,14 @@ PersonaTalk is a local-first single-user web app for chatting with saved AI pers
 
 - Create, save, edit, reuse, and delete personas
 - Save, reopen, search, continue, and delete conversations
+- Rename conversation titles from the sidebar
 - Switch between `text`, `voice`, and `mixed` modes in the same conversation
 - Choose the active model per conversation:
   - `GPT-4o mini`
   - `LM Studio Local`
   - `Local GGUF`
 - Choose the active microphone from the UI
+- Edit the latest user message or transcript and regenerate the reply in place
 - Pick male or female Kokoro voice output
 - Keep persona snapshots and model choice with each conversation
 - Return assistant text first in mixed mode, then attach voice output when TTS finishes
@@ -149,9 +151,9 @@ TTS_PROVIDER=kokoro
 TTS_MODEL=kokoro-82m
 KOKORO_PROVIDER=auto
 KOKORO_VOICE_MALE=am_michael
-KOKORO_VOICE_FEMALE=us_heart
+KOKORO_VOICE_FEMALE=af_heart
 KOKORO_LANG=en-us
-KOKORO_SPEED=0.5
+KOKORO_SPEED=0.9
 ```
 
 ## Model Modes
@@ -180,6 +182,8 @@ KOKORO_SPEED=0.5
 - In `voice` and `mixed` mode, assistant text appears first
 - Kokoro audio is generated in the background and attached to the latest assistant message when ready
 - If TTS fails, the latest reply is still kept as text and the UI shows that voice generation did not finish
+- Before the first recording, the UI can ask for microphone access so the real device names appear instead of generic labels
+- Microphone labels are cleaned up in the UI to show friendlier names such as `Default: ...`, `Communications: ...`, or `Laptop microphone`
 
 ## Conversation Behavior
 
@@ -192,6 +196,8 @@ KOKORO_SPEED=0.5
 - Reopening a conversation restores those settings
 - Editing the right panel only affects future turns
 - Deleting a saved persona does not break old chats because the snapshot stays with the conversation
+- The latest user message can be edited and regenerated in place
+- The latest conversation title can be renamed from the sidebar
 
 ## UI Summary
 
@@ -199,11 +205,14 @@ KOKORO_SPEED=0.5
   - conversations
   - search
   - new chat
+  - rename title
 - Center panel:
   - conversation thread
   - mode toggle
   - message composer
+  - edit last message or transcript
   - microphone selector
+  - microphone access prompt
   - push-to-talk
   - active model badge
 - Right panel:
@@ -260,6 +269,7 @@ Check:
 
 - your venv includes the speech dependencies
 - the backend was restarted after dependency changes
+- if voice generation stalls, the app should now resolve the latest reply as failed instead of staying pending forever
 
 ## Practical Notes
 

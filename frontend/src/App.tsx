@@ -52,7 +52,17 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isRecording, start, stop, devices, selectedDeviceId, setSelectedDeviceId, refreshDevices } = useRecorder();
+  const {
+    isRecording,
+    start,
+    stop,
+    devices,
+    hasMicrophoneAccess,
+    requestMicrophoneAccess,
+    selectedDeviceId,
+    setSelectedDeviceId,
+    refreshDevices
+  } = useRecorder();
   const activeConversation = conversations.find((item) => item.id === activeConversationId) ?? null;
   const latestUserMessage = [...messages].reverse().find((message) => message.role === "user") ?? null;
   const latestAssistantMessage = [...messages].reverse().find((message) => message.role === "assistant") ?? null;
@@ -295,6 +305,15 @@ export default function App() {
     }
   }
 
+  async function handleEnableMicrophoneAccess() {
+    setError(null);
+    try {
+      await requestMicrophoneAccess();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   async function handleNewChat() {
     setActiveConversationId(null);
     setMessages([]);
@@ -411,9 +430,13 @@ export default function App() {
         editingMessageId={editingMessageId}
         editingMessageDraft={editingMessageDraft}
         devices={devices}
+        hasMicrophoneAccess={hasMicrophoneAccess}
         selectedDeviceId={selectedDeviceId}
         onDraftChange={setDraftMessage}
         onEditingDraftChange={setEditingMessageDraft}
+        onEnableMicrophoneAccess={() => {
+          void handleEnableMicrophoneAccess();
+        }}
         onDeviceChange={setSelectedDeviceId}
         onRefreshDevices={() => {
           void refreshDevices();

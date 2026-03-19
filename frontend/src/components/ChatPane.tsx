@@ -1,3 +1,4 @@
+import { API_BASE } from "../api/client";
 import type { ChatMode, LLMProvider, Message } from "../api/types";
 import type { AudioInputDevice } from "../hooks/useRecorder";
 
@@ -17,9 +18,11 @@ interface Props {
   editingMessageId: string | null;
   editingMessageDraft: string;
   devices: AudioInputDevice[];
+  hasMicrophoneAccess: boolean;
   selectedDeviceId: string;
   onDraftChange: (value: string) => void;
   onEditingDraftChange: (value: string) => void;
+  onEnableMicrophoneAccess: () => void;
   onDeviceChange: (deviceId: string) => void;
   onRefreshDevices: () => void;
   onModeChange: (mode: ChatMode) => void;
@@ -47,9 +50,11 @@ export function ChatPane(props: Props) {
     editingMessageId,
     editingMessageDraft,
     devices,
+    hasMicrophoneAccess,
     selectedDeviceId,
     onDraftChange,
     onEditingDraftChange,
+    onEnableMicrophoneAccess,
     onDeviceChange,
     onRefreshDevices,
     onModeChange,
@@ -59,6 +64,7 @@ export function ChatPane(props: Props) {
     onSend,
     onVoiceToggle
   } = props;
+  const audioBase = API_BASE.replace(/\/api$/, "");
 
   return (
     <main className="panel chat-panel">
@@ -130,7 +136,7 @@ export function ChatPane(props: Props) {
                   </button>
                 </div>
               ) : null}
-              {message.audio_path ? <audio controls src={`http://localhost:8000${message.audio_path}`} /> : null}
+              {message.audio_path ? <audio controls src={`${audioBase}${message.audio_path}`} /> : null}
             </article>
           ))
         )}
@@ -149,6 +155,14 @@ export function ChatPane(props: Props) {
           placeholder="Type a message"
           rows={4}
         />
+        {!hasMicrophoneAccess ? (
+          <div className="mic-access-banner">
+            <span>Enable microphone access to see the real mic names before your first recording.</span>
+            <button className="secondary-button" onClick={onEnableMicrophoneAccess} disabled={loading || isRecording}>
+              Enable microphone access
+            </button>
+          </div>
+        ) : null}
         <div className="voice-device-row">
           <select value={selectedDeviceId} onChange={(event) => onDeviceChange(event.target.value)} disabled={isRecording}>
             {devices.length === 0 ? <option value="">No microphone detected</option> : null}
