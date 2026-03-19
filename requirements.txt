@@ -1,0 +1,12 @@
+fastapi==0.115.6
+faster-whisper==1.1.0
+openai==1.58.1
+pydantic==2.10.3
+pydantic-settings==2.6.1
+pykokoro==0.6.5
+python-multipart==0.0.20
+requests==2.32.3
+charset-normalizer==3.4.1
+soundfile==0.13.1
+urllib3==2.3.0
+uvicorn[standard]==0.32.1
