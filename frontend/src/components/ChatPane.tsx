@@ -13,12 +13,19 @@ interface Props {
   error: string | null;
   pendingAssistantAudio: boolean;
   latestAssistantTtsStatus: "none" | "pending" | "ready" | "failed" | null;
+  editableMessageId: string | null;
+  editingMessageId: string | null;
+  editingMessageDraft: string;
   devices: AudioInputDevice[];
   selectedDeviceId: string;
   onDraftChange: (value: string) => void;
+  onEditingDraftChange: (value: string) => void;
   onDeviceChange: (deviceId: string) => void;
   onRefreshDevices: () => void;
   onModeChange: (mode: ChatMode) => void;
+  onStartEditing: (message: Message) => void;
+  onCancelEditing: () => void;
+  onSaveEditedMessage: () => void;
   onSend: () => void;
   onVoiceToggle: () => void;
 }
@@ -36,12 +43,19 @@ export function ChatPane(props: Props) {
     error,
     pendingAssistantAudio,
     latestAssistantTtsStatus,
+    editableMessageId,
+    editingMessageId,
+    editingMessageDraft,
     devices,
     selectedDeviceId,
     onDraftChange,
+    onEditingDraftChange,
     onDeviceChange,
     onRefreshDevices,
     onModeChange,
+    onStartEditing,
+    onCancelEditing,
+    onSaveEditedMessage,
     onSend,
     onVoiceToggle
   } = props;
@@ -88,7 +102,34 @@ export function ChatPane(props: Props) {
                 <span>{message.role}</span>
                 <span>{new Date(message.created_at).toLocaleTimeString()}</span>
               </div>
-              <p>{message.content_text}</p>
+              {editingMessageId === message.id ? (
+                <div className="message-edit">
+                  <textarea
+                    value={editingMessageDraft}
+                    onChange={(event) => onEditingDraftChange(event.target.value)}
+                    rows={4}
+                  />
+                  <div className="message-edit__actions">
+                    <button className="secondary-button" onClick={onCancelEditing}>
+                      Cancel
+                    </button>
+                    <button className="primary-button" onClick={onSaveEditedMessage} disabled={!editingMessageDraft.trim()}>
+                      Save and regenerate
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p>{message.content_text}</p>
+              )}
+              {message.id === editableMessageId && editingMessageId !== message.id ? (
+                <div className="message__actions">
+                  <button className="message-link" onClick={() => onStartEditing(message)}>
+                    {message.transcript_source === "voice" || message.transcript_source === "voice-fallback"
+                      ? "Edit transcript"
+                      : "Edit last message"}
+                  </button>
+                </div>
+              ) : null}
               {message.audio_path ? <audio controls src={`http://localhost:8000${message.audio_path}`} /> : null}
             </article>
           ))
@@ -96,7 +137,7 @@ export function ChatPane(props: Props) {
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}
-      {pendingAssistantAudio ? <div className="status-banner">Generating voice reply in the background…</div> : null}
+      {pendingAssistantAudio ? <div className="status-banner">Generating voice reply in the background...</div> : null}
       {latestAssistantTtsStatus === "failed" ? (
         <div className="status-banner">Voice generation did not finish for the latest reply.</div>
       ) : null}

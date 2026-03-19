@@ -3,7 +3,7 @@ from fastapi.responses import FileResponse
 
 from ..config import get_settings
 from ..repositories.settings import SettingsRepository
-from ..schemas.chat import ConversationCreate, ConversationUpdate, MessageCreate
+from ..schemas.chat import ConversationCreate, ConversationUpdate, MessageCreate, MessageEdit
 from ..schemas.persona import PersonaCreate, PersonaUpdate
 from ..services.chat import ChatService
 from ..services.personas import PersonaService
@@ -89,6 +89,11 @@ def list_messages(conversation_id: str, service: ChatService = Depends(get_chat_
 @router.post("/messages")
 def send_message(payload: MessageCreate, service: ChatService = Depends(get_chat_service)):
     return service.send_text_message(payload)
+
+
+@router.put("/messages/{message_id}")
+def edit_message(message_id: str, payload: MessageEdit, service: ChatService = Depends(get_chat_service)):
+    return service.edit_last_user_message(message_id, payload)
 
 
 @router.post("/voice/{conversation_id}")

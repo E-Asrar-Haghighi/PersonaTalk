@@ -70,6 +70,11 @@ export const api = {
     temperature_override: number;
     voice_preference_override: VoicePreference;
   }) => request<SendMessageResponse>("/messages", { method: "POST", body: JSON.stringify(payload) }),
+  editLastMessage: (messageId: string, contentText: string) =>
+    request<SendMessageResponse>(`/messages/${messageId}`, {
+      method: "PUT",
+      body: JSON.stringify({ content_text: contentText })
+    }),
   sendVoiceMessage: async (
     conversationId: string,
     audioBlob: Blob,
