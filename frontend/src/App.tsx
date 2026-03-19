@@ -366,6 +366,15 @@ export default function App() {
     }
   }
 
+  async function handleRenameConversation(conversationId: string, title: string) {
+    try {
+      const updated = await api.updateConversation(conversationId, { title });
+      setConversations((current) => current.map((conversation) => (conversation.id === updated.id ? updated : conversation)));
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   return (
     <div className="app-shell">
       <ConversationSidebar
@@ -381,6 +390,9 @@ export default function App() {
         }}
         onDeleteConversation={(conversationId) => {
           void handleDeleteConversation(conversationId);
+        }}
+        onRenameConversation={(conversationId, title) => {
+          void handleRenameConversation(conversationId, title);
         }}
       />
       <ChatPane

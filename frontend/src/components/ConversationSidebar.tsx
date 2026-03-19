@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import type { ConversationSummary } from "../api/types";
 
 interface Props {
@@ -8,6 +10,7 @@ interface Props {
   onSelectConversation: (conversationId: string) => void;
   onNewChat: () => void;
   onDeleteConversation: (conversationId: string) => void;
+  onRenameConversation: (conversationId: string, title: string) => void;
 }
 
 export function ConversationSidebar(props: Props) {
@@ -18,8 +21,30 @@ export function ConversationSidebar(props: Props) {
     onSearchChange,
     onSelectConversation,
     onNewChat,
-    onDeleteConversation
+    onDeleteConversation,
+    onRenameConversation
   } = props;
+  const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+
+  function startEditing(conversation: ConversationSummary) {
+    setEditingConversationId(conversation.id);
+    setEditingTitle(conversation.title);
+  }
+
+  function cancelEditing() {
+    setEditingConversationId(null);
+    setEditingTitle("");
+  }
+
+  function saveEditing(conversationId: string) {
+    const nextTitle = editingTitle.trim();
+    if (!nextTitle) {
+      return;
+    }
+    onRenameConversation(conversationId, nextTitle);
+    cancelEditing();
+  }
 
   return (
     <aside className="panel sidebar">
@@ -44,7 +69,49 @@ export function ConversationSidebar(props: Props) {
             onClick={() => onSelectConversation(conversation.id)}
           >
             <div className="conversation-card__top">
-              <strong>{conversation.title}</strong>
+              {editingConversationId === conversation.id ? (
+                <div
+                  className="conversation-title-edit"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                  }}
+                >
+                  <input
+                    value={editingTitle}
+                    onChange={(event) => setEditingTitle(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        saveEditing(conversation.id);
+                      }
+                      if (event.key === "Escape") {
+                        event.preventDefault();
+                        cancelEditing();
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <div className="conversation-title-edit__actions">
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => cancelEditing()}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={() => saveEditing(conversation.id)}
+                      disabled={!editingTitle.trim()}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <strong>{conversation.title}</strong>
+              )}
               <span>{new Date(conversation.updated_at).toLocaleDateString()}</span>
             </div>
             <div className="conversation-card__meta">
@@ -52,15 +119,28 @@ export function ConversationSidebar(props: Props) {
               <span>{conversation.mode}</span>
             </div>
             <p>{conversation.preview || "No messages yet."}</p>
-            <span
-              className="danger-link"
-              onClick={(event) => {
-                event.stopPropagation();
-                onDeleteConversation(conversation.id);
-              }}
-            >
-              Delete
-            </span>
+            <div className="conversation-card__actions">
+              {editingConversationId !== conversation.id ? (
+                <span
+                  className="danger-link"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    startEditing(conversation);
+                  }}
+                >
+                  Edit title
+                </span>
+              ) : null}
+              <span
+                className="danger-link"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDeleteConversation(conversation.id);
+                }}
+              >
+                Delete
+              </span>
+            </div>
           </button>
         ))}
       </div>
