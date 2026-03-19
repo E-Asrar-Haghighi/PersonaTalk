@@ -160,8 +160,20 @@ class KokoroLocalTTSProvider(TTSProvider):
         self.audio_cache_dir = settings.audio_cache_dir
         self._pipeline = None
         self._voice: str | None = None
+        self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="kokoro-tts")
 
     def synthesize(self, text: str, voice_preference: str) -> str:
+        future = self._executor.submit(self._synthesize_sync, text, voice_preference)
+        try:
+            return future.result(timeout=self.settings.tts_timeout_seconds)
+        except FutureTimeoutError as exc:
+            logger.error("TTS timed out after %ss", self.settings.tts_timeout_seconds)
+            raise RuntimeError(
+                f"Kokoro TTS timed out after {self.settings.tts_timeout_seconds} seconds. "
+                "Try a shorter reply, faster voice speed, or restart the backend."
+            ) from exc
+
+    def _synthesize_sync(self, text: str, voice_preference: str) -> str:
         voice = self._map_voice(voice_preference)
         logger.info("TTS started with Kokoro voice=%s", voice)
         started_at = time.perf_counter()

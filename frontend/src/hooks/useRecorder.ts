@@ -12,6 +12,7 @@ export function useRecorder() {
   const chunksRef = useRef<Blob[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [devices, setDevices] = useState<AudioInputDevice[]>([]);
+  const [hasMicrophoneAccess, setHasMicrophoneAccess] = useState(false);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>(() => {
     try {
       return window.localStorage.getItem(RECORDER_DEVICE_KEY) ?? "";
@@ -47,10 +48,18 @@ export function useRecorder() {
     }
   }, [selectedDeviceId]);
 
+  async function requestMicrophoneAccess() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((track) => track.stop());
+    setHasMicrophoneAccess(true);
+    await refreshDevices();
+  }
+
   async function start() {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : true
     });
+    setHasMicrophoneAccess(true);
     const recorder = new MediaRecorder(stream);
     chunksRef.current = [];
     recorder.ondataavailable = (event) => {
@@ -94,17 +103,29 @@ export function useRecorder() {
         deviceId: entry.deviceId,
         label: entry.label || `Microphone ${index + 1}`
       }));
+    const normalizedAudioInputs = normalizeAudioInputLabels(audioInputs);
 
-    setDevices(audioInputs);
+    setHasMicrophoneAccess(audioInputs.some((device) => !/^Microphone \d+$/.test(device.label)));
+    setDevices(normalizedAudioInputs);
     setSelectedDeviceId((current) => {
-      if (current && audioInputs.some((device) => device.deviceId === current)) {
+      if (current && normalizedAudioInputs.some((device) => device.deviceId === current)) {
         return current;
       }
-      return audioInputs[0]?.deviceId ?? "";
+      return normalizedAudioInputs[0]?.deviceId ?? "";
     });
   }
 
-  return { isRecording, start, stop, devices, selectedDeviceId, setSelectedDeviceId, refreshDevices };
+  return {
+    isRecording,
+    start,
+    stop,
+    devices,
+    hasMicrophoneAccess,
+    requestMicrophoneAccess,
+    selectedDeviceId,
+    setSelectedDeviceId,
+    refreshDevices
+  };
 }
 
 async function convertToWav(blob: Blob): Promise<Blob> {
@@ -152,4 +173,60 @@ function writeString(view: DataView, offset: number, value: string) {
   for (let index = 0; index < value.length; index += 1) {
     view.setUint8(offset + index, value.charCodeAt(index));
   }
+}
+
+function normalizeAudioInputLabels(devices: AudioInputDevice[]): AudioInputDevice[] {
+  const counts = new Map<string, number>();
+
+  return devices.map((device) => {
+    const baseLabel = prettifyAudioLabel(device.label);
+    const seen = counts.get(baseLabel) ?? 0;
+    counts.set(baseLabel, seen + 1);
+    return {
+      ...device,
+      label: seen === 0 ? baseLabel : `${baseLabel} ${seen + 1}`
+    };
+  });
+}
+
+function prettifyAudioLabel(rawLabel: string): string {
+  const trimmed = rawLabel.trim();
+  if (!trimmed) {
+    return "Microphone";
+  }
+
+  const prefixMatch = trimmed.match(/^(Default|Communications)\s*-\s*(.+)$/i);
+  if (prefixMatch) {
+    const prefix = prefixMatch[1].toLowerCase() === "default" ? "Default" : "Communications";
+    return `${prefix}: ${prettifyAudioLabel(prefixMatch[2])}`;
+  }
+
+  const normalized = trimmed
+    .replace(/\([0-9a-f]{4}:[0-9a-f]{4}\)/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (/microphone array/i.test(normalized) || /intel.+smart sound/i.test(normalized)) {
+    return "Laptop microphone";
+  }
+
+  const namedMicrophoneMatch = normalized.match(/^Microphone\s*\((.+)\)$/i);
+  if (namedMicrophoneMatch) {
+    return toTitleCase(namedMicrophoneMatch[1]);
+  }
+
+  return toTitleCase(normalized);
+}
+
+function toTitleCase(value: string): string {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => {
+      if (part.length <= 3 && /[A-Z]/.test(part)) {
+        return part.toUpperCase();
+      }
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(" ");
 }

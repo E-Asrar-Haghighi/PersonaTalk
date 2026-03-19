@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     parakeet_backend: str = "auto"
     parakeet_device: str | None = None
     stt_timeout_seconds: int = 180
+    tts_timeout_seconds: int = 90
     kokoro_provider: str = "auto"
     kokoro_voice_male: str = "am_michael"
     kokoro_voice_female: str = "af_sarah"

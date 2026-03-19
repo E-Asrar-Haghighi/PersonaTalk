@@ -1,3 +1,4 @@
+import { API_BASE } from "../api/client";
 import type { ChatMode, LLMProvider, Message } from "../api/types";
 import type { AudioInputDevice } from "../hooks/useRecorder";
 
@@ -13,12 +14,21 @@ interface Props {
   error: string | null;
   pendingAssistantAudio: boolean;
   latestAssistantTtsStatus: "none" | "pending" | "ready" | "failed" | null;
+  editableMessageId: string | null;
+  editingMessageId: string | null;
+  editingMessageDraft: string;
   devices: AudioInputDevice[];
+  hasMicrophoneAccess: boolean;
   selectedDeviceId: string;
   onDraftChange: (value: string) => void;
+  onEditingDraftChange: (value: string) => void;
+  onEnableMicrophoneAccess: () => void;
   onDeviceChange: (deviceId: string) => void;
   onRefreshDevices: () => void;
   onModeChange: (mode: ChatMode) => void;
+  onStartEditing: (message: Message) => void;
+  onCancelEditing: () => void;
+  onSaveEditedMessage: () => void;
   onSend: () => void;
   onVoiceToggle: () => void;
 }
@@ -36,15 +46,25 @@ export function ChatPane(props: Props) {
     error,
     pendingAssistantAudio,
     latestAssistantTtsStatus,
+    editableMessageId,
+    editingMessageId,
+    editingMessageDraft,
     devices,
+    hasMicrophoneAccess,
     selectedDeviceId,
     onDraftChange,
+    onEditingDraftChange,
+    onEnableMicrophoneAccess,
     onDeviceChange,
     onRefreshDevices,
     onModeChange,
+    onStartEditing,
+    onCancelEditing,
+    onSaveEditedMessage,
     onSend,
     onVoiceToggle
   } = props;
+  const audioBase = API_BASE.replace(/\/api$/, "");
 
   return (
     <main className="panel chat-panel">
@@ -88,15 +108,42 @@ export function ChatPane(props: Props) {
                 <span>{message.role}</span>
                 <span>{new Date(message.created_at).toLocaleTimeString()}</span>
               </div>
-              <p>{message.content_text}</p>
-              {message.audio_path ? <audio controls src={`http://localhost:8000${message.audio_path}`} /> : null}
+              {editingMessageId === message.id ? (
+                <div className="message-edit">
+                  <textarea
+                    value={editingMessageDraft}
+                    onChange={(event) => onEditingDraftChange(event.target.value)}
+                    rows={4}
+                  />
+                  <div className="message-edit__actions">
+                    <button className="secondary-button" onClick={onCancelEditing}>
+                      Cancel
+                    </button>
+                    <button className="primary-button" onClick={onSaveEditedMessage} disabled={!editingMessageDraft.trim()}>
+                      Save and regenerate
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p>{message.content_text}</p>
+              )}
+              {message.id === editableMessageId && editingMessageId !== message.id ? (
+                <div className="message__actions">
+                  <button className="message-link" onClick={() => onStartEditing(message)}>
+                    {message.transcript_source === "voice" || message.transcript_source === "voice-fallback"
+                      ? "Edit transcript"
+                      : "Edit last message"}
+                  </button>
+                </div>
+              ) : null}
+              {message.audio_path ? <audio controls src={`${audioBase}${message.audio_path}`} /> : null}
             </article>
           ))
         )}
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}
-      {pendingAssistantAudio ? <div className="status-banner">Generating voice reply in the background…</div> : null}
+      {pendingAssistantAudio ? <div className="status-banner">Generating voice reply in the background...</div> : null}
       {latestAssistantTtsStatus === "failed" ? (
         <div className="status-banner">Voice generation did not finish for the latest reply.</div>
       ) : null}
@@ -108,6 +155,14 @@ export function ChatPane(props: Props) {
           placeholder="Type a message"
           rows={4}
         />
+        {!hasMicrophoneAccess ? (
+          <div className="mic-access-banner">
+            <span>Enable microphone access to see the real mic names before your first recording.</span>
+            <button className="secondary-button" onClick={onEnableMicrophoneAccess} disabled={loading || isRecording}>
+              Enable microphone access
+            </button>
+          </div>
+        ) : null}
         <div className="voice-device-row">
           <select value={selectedDeviceId} onChange={(event) => onDeviceChange(event.target.value)} disabled={isRecording}>
             {devices.length === 0 ? <option value="">No microphone detected</option> : null}

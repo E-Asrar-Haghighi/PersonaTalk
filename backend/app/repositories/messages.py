@@ -49,6 +49,62 @@ class MessageRepository:
             created_at=datetime.fromisoformat(now),
         )
 
+    def get(self, message_id: str) -> MessageRecord | None:
+        with db_cursor() as connection:
+            row = connection.execute(
+                """
+                SELECT id, conversation_id, role, content_text, audio_path, tts_status, transcript_source, created_at
+                FROM messages
+                WHERE id = ?
+                """,
+                (message_id,),
+            ).fetchone()
+        return MessageRecord.model_validate(dict(row)) if row else None
+
+    def get_latest_user_message(self, conversation_id: str) -> MessageRecord | None:
+        with db_cursor() as connection:
+            row = connection.execute(
+                """
+                SELECT id, conversation_id, role, content_text, audio_path, tts_status, transcript_source, created_at
+                FROM messages
+                WHERE conversation_id = ? AND role = 'user'
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (conversation_id,),
+            ).fetchone()
+        return MessageRecord.model_validate(dict(row)) if row else None
+
+    def update_content(self, message_id: str, content_text: str, transcript_source: str) -> MessageRecord | None:
+        with db_cursor() as connection:
+            connection.execute(
+                """
+                UPDATE messages
+                SET content_text = ?, audio_path = NULL, tts_status = 'none', transcript_source = ?
+                WHERE id = ?
+                """,
+                (content_text, transcript_source, message_id),
+            )
+            row = connection.execute(
+                """
+                SELECT id, conversation_id, role, content_text, audio_path, tts_status, transcript_source, created_at
+                FROM messages
+                WHERE id = ?
+                """,
+                (message_id,),
+            ).fetchone()
+        return MessageRecord.model_validate(dict(row)) if row else None
+
+    def delete_after(self, conversation_id: str, created_at: datetime) -> None:
+        with db_cursor() as connection:
+            connection.execute(
+                """
+                DELETE FROM messages
+                WHERE conversation_id = ? AND created_at > ?
+                """,
+                (conversation_id, created_at.isoformat()),
+            )
+
     def update_tts_result(self, message_id: str, audio_path: str | None, tts_status: str) -> MessageRecord | None:
         with db_cursor() as connection:
             connection.execute(

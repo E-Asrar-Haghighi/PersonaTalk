@@ -46,12 +46,25 @@ export default function App() {
     }
   });
   const [draftMessage, setDraftMessage] = useState("");
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingMessageDraft, setEditingMessageDraft] = useState("");
   const [mode, setMode] = useState<ChatMode>("text");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isRecording, start, stop, devices, selectedDeviceId, setSelectedDeviceId, refreshDevices } = useRecorder();
+  const {
+    isRecording,
+    start,
+    stop,
+    devices,
+    hasMicrophoneAccess,
+    requestMicrophoneAccess,
+    selectedDeviceId,
+    setSelectedDeviceId,
+    refreshDevices
+  } = useRecorder();
   const activeConversation = conversations.find((item) => item.id === activeConversationId) ?? null;
+  const latestUserMessage = [...messages].reverse().find((message) => message.role === "user") ?? null;
   const latestAssistantMessage = [...messages].reverse().find((message) => message.role === "assistant") ?? null;
   const pendingAssistantAudio =
     mode !== "text" && latestAssistantMessage?.tts_status === "pending";
@@ -157,6 +170,8 @@ export default function App() {
       const conversation = conversationOverride ?? conversations.find((item) => item.id === conversationId) ?? null;
       const messageData = await api.getMessages(conversationId);
       setMessages(messageData);
+      setEditingMessageId(null);
+      setEditingMessageDraft("");
       if (conversation) {
         setMode(conversation.mode);
         setDraftName(conversation.persona_snapshot.name);
@@ -258,6 +273,47 @@ export default function App() {
     setConversations((current) => [conversation, ...current.filter((item) => item.id !== conversation.id)]);
   }
 
+  function handleStartEditing(message: Message) {
+    setEditingMessageId(message.id);
+    setEditingMessageDraft(message.content_text);
+    setError(null);
+  }
+
+  function handleCancelEditing() {
+    setEditingMessageId(null);
+    setEditingMessageDraft("");
+  }
+
+  async function handleSaveEditedMessage() {
+    if (!editingMessageId || !editingMessageDraft.trim() || !activeConversationId) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.editLastMessage(editingMessageId, editingMessageDraft.trim());
+      const refreshedMessages = await api.getMessages(activeConversationId);
+      setMessages(refreshedMessages);
+      setEditingMessageId(null);
+      setEditingMessageDraft("");
+      await refreshAfterReply(response.conversation);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleEnableMicrophoneAccess() {
+    setError(null);
+    try {
+      await requestMicrophoneAccess();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   async function handleNewChat() {
     setActiveConversationId(null);
     setMessages([]);
@@ -329,6 +385,15 @@ export default function App() {
     }
   }
 
+  async function handleRenameConversation(conversationId: string, title: string) {
+    try {
+      const updated = await api.updateConversation(conversationId, { title });
+      setConversations((current) => current.map((conversation) => (conversation.id === updated.id ? updated : conversation)));
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   return (
     <div className="app-shell">
       <ConversationSidebar
@@ -345,6 +410,9 @@ export default function App() {
         onDeleteConversation={(conversationId) => {
           void handleDeleteConversation(conversationId);
         }}
+        onRenameConversation={(conversationId, title) => {
+          void handleRenameConversation(conversationId, title);
+        }}
       />
       <ChatPane
         title={activeConversation?.title ?? "New conversation"}
@@ -358,14 +426,27 @@ export default function App() {
         error={error}
         pendingAssistantAudio={pendingAssistantAudio}
         latestAssistantTtsStatus={latestAssistantMessage?.tts_status ?? null}
+        editableMessageId={latestUserMessage?.id ?? null}
+        editingMessageId={editingMessageId}
+        editingMessageDraft={editingMessageDraft}
         devices={devices}
+        hasMicrophoneAccess={hasMicrophoneAccess}
         selectedDeviceId={selectedDeviceId}
         onDraftChange={setDraftMessage}
+        onEditingDraftChange={setEditingMessageDraft}
+        onEnableMicrophoneAccess={() => {
+          void handleEnableMicrophoneAccess();
+        }}
         onDeviceChange={setSelectedDeviceId}
         onRefreshDevices={() => {
           void refreshDevices();
         }}
         onModeChange={setMode}
+        onStartEditing={handleStartEditing}
+        onCancelEditing={handleCancelEditing}
+        onSaveEditedMessage={() => {
+          void handleSaveEditedMessage();
+        }}
         onSend={() => {
           void handleSend();
         }}

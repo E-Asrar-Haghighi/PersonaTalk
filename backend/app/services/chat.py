@@ -13,6 +13,7 @@ from ..schemas.chat import (
     ConversationSummary,
     ConversationUpdate,
     MessageCreate,
+    MessageEdit,
     SendMessageResponse,
     VoiceReplyResponse,
 )
@@ -34,7 +35,7 @@ class ChatService:
         self.llm_registry = llm_registry
         self.stt_provider = stt_provider
         self.tts_provider = tts_provider
-        self._tts_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="personatalk-tts")
+        self._tts_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="personatalk-tts")
 
     def list_conversations(self, query: str | None = None) -> list[ConversationSummary]:
         return self.conversation_repository.list(query=query)
@@ -53,6 +54,62 @@ class ChatService:
 
     def list_messages(self, conversation_id: str):
         return self.message_repository.list_for_conversation(conversation_id)
+
+    def edit_last_user_message(self, message_id: str, payload: MessageEdit) -> SendMessageResponse:
+        original_message = self.message_repository.get(message_id)
+        if not original_message:
+            raise HTTPException(status_code=404, detail="Message not found.")
+        if original_message.role != "user":
+            raise HTTPException(status_code=400, detail="Only user messages can be edited.")
+
+        conversation = self._require_conversation(original_message.conversation_id)
+        latest_user_message = self.message_repository.get_latest_user_message(conversation.id)
+        if not latest_user_message or latest_user_message.id != message_id:
+            raise HTTPException(status_code=400, detail="Only the latest user message can be edited.")
+
+        self.message_repository.delete_after(conversation.id, original_message.created_at)
+        updated_user_message = self.message_repository.update_content(
+            message_id,
+            payload.content_text,
+            "voice-fallback" if original_message.transcript_source == "voice" else original_message.transcript_source,
+        )
+        if not updated_user_message:
+            raise HTTPException(status_code=404, detail="Message not found after update.")
+
+        history = self.message_repository.list_for_conversation(conversation.id)
+        try:
+            assistant_text = self.llm_registry.get(conversation.llm_provider).reply(
+                conversation,
+                history[:-1],
+                conversation.persona_snapshot,
+                updated_user_message.content_text,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"LLM request failed: {exc}") from exc
+
+        assistant_message = self.message_repository.create(
+            conversation_id=conversation.id,
+            role="assistant",
+            content_text=assistant_text,
+            transcript_source="text",
+            audio_path=None,
+            tts_status="pending" if conversation.mode in ("voice", "mixed") else "none",
+        )
+
+        if conversation.mode in ("voice", "mixed"):
+            self._queue_tts_generation(
+                assistant_message.id,
+                assistant_text,
+                conversation.persona_snapshot.voice_preference,
+            )
+
+        self.conversation_repository.touch(conversation.id)
+        updated_conversation = self.conversation_repository.get(conversation.id)
+        return SendMessageResponse(
+            conversation=updated_conversation,
+            user_message=updated_user_message,
+            assistant_message=assistant_message,
+        )
 
     def send_text_message(self, payload: MessageCreate) -> SendMessageResponse:
         conversation = self._require_conversation(payload.conversation_id)

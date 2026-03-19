@@ -11,6 +11,7 @@ PersonaTalk lets you talk with saved personas using text, voice, or mixed mode i
 - Start a new chat
 - Browse saved conversations
 - Search by title or message text
+- Rename a conversation title
 - Delete old chats
 
 ### Center panel
@@ -19,9 +20,11 @@ PersonaTalk lets you talk with saved personas using text, voice, or mixed mode i
 - Type a message
 - Switch between `text`, `voice`, and `mixed`
 - Choose the microphone
+- Enable microphone access so the real microphone names appear
 - Use `Push to talk`
 - See the active model badge in the header
 - Listen to assistant audio replies when available
+- Edit the latest user message or transcript and regenerate the reply
 
 ### Right panel
 
@@ -46,7 +49,7 @@ PersonaTalk supports three model paths.
 
 - fully local through LM Studio
 - usually the best local-performance option if your LM Studio model already uses your GPU
-- requires LM Studio’s local server to be running
+- requires LM Studio's local server to be running
 
 ### Local GGUF
 
@@ -82,6 +85,7 @@ Important behavior:
 - Click again to stop and send
 - The selected microphone from the dropdown is used
 - Voice is transcribed into text and saved in the conversation
+- Before the first recording, you can enable microphone access so the dropdown shows the real device names instead of generic labels
 
 ## Voice Output
 
@@ -93,6 +97,7 @@ Important behavior:
 ## Microphone Selection
 
 - Use the microphone dropdown above the composer actions
+- The app cleans up raw browser microphone labels into friendlier names where possible
 - Click `Refresh mics` if you plug in a device after opening the app
 - The selected microphone is remembered across reloads
 
@@ -110,6 +115,7 @@ You can:
 - reopen chats
 - continue them
 - search them
+- rename them
 - delete them
 
 When you reopen a conversation, PersonaTalk restores:
@@ -119,6 +125,13 @@ When you reopen a conversation, PersonaTalk restores:
 - voice preference
 - model choice
 - mode
+
+## Editing the Latest Message
+
+- The newest user message in a conversation can be edited
+- If it was a voice-origin message, the UI shows `Edit transcript`
+- If it was a typed message, the UI shows `Edit last message`
+- Saving the edit removes the later reply and regenerates the assistant response in the same thread
 
 ## Good Defaults
 

@@ -84,6 +84,14 @@ button {
   padding-bottom: 20px;
 }
 
+.sidebar {
+  min-width: 0;
+}
+
+.sidebar .panel-header {
+  flex-wrap: wrap;
+}
+
 .search-input,
 .persona-panel input,
 .persona-panel textarea,
@@ -97,6 +105,8 @@ button {
 }
 
 .search-input {
+  width: auto;
+  display: block;
   margin: 16px 20px 12px;
 }
 
@@ -119,6 +129,27 @@ button {
   text-align: left;
   padding: 14px;
   background: #ffffff;
+}
+
+.conversation-title-edit {
+  flex: 1;
+  min-width: 0;
+}
+
+.conversation-title-edit input {
+  width: 100%;
+  border: 1px solid rgba(49, 69, 102, 0.16);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.conversation-title-edit__actions,
+.conversation-card__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
 }
 
 .conversation-card.active {
@@ -196,6 +227,27 @@ button {
   white-space: pre-wrap;
 }
 
+.message__actions,
+.message-edit__actions {
+  margin-top: 10px;
+}
+
+.message-link {
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: #35507a;
+  text-decoration: underline;
+}
+
+.message-edit textarea {
+  width: 100%;
+  border: 1px solid rgba(49, 69, 102, 0.16);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
 .message audio {
   width: 100%;
   margin-top: 12px;
@@ -209,6 +261,37 @@ button {
 .composer-actions,
 .persona-actions {
   margin-top: 12px;
+}
+
+.mic-access-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 155, 102, 0.22);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 214, 170, 0.75), transparent 38%),
+    linear-gradient(135deg, rgba(255, 247, 236, 0.98) 0%, rgba(255, 233, 210, 0.94) 100%);
+  color: #5a3c28;
+  box-shadow: 0 14px 34px rgba(208, 129, 74, 0.14);
+}
+
+.mic-access-banner span {
+  max-width: 34rem;
+  line-height: 1.45;
+}
+
+.mic-access-banner .secondary-button {
+  background: linear-gradient(135deg, #ff9560 0%, #ffb36e 100%);
+  color: white;
+  box-shadow: 0 10px 24px rgba(233, 137, 79, 0.24);
+}
+
+.mic-access-banner .secondary-button:hover {
+  filter: brightness(1.03);
 }
 
 .voice-device-row {
@@ -313,5 +396,10 @@ button {
 
   .message {
     max-width: 100%;
+  }
+
+  .mic-access-banner {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

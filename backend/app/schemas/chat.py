@@ -58,6 +58,10 @@ class MessageCreate(BaseModel):
     voice_preference_override: Literal["male", "female"] | None = None
 
 
+class MessageEdit(BaseModel):
+    content_text: str = Field(min_length=1)
+
+
 class MessageRecord(BaseModel):
     id: str
     conversation_id: str
