@@ -6,6 +6,11 @@ from openai import OpenAI
 from ..config import Settings
 from ..schemas.chat import ConversationSummary, MessageRecord, PersonaSnapshot
 
+PLAIN_TEXT_STYLE_INSTRUCTION = (
+    "Respond in plain conversational text by default. "
+    "Avoid Markdown headings, bullet lists, and heavy formatting unless the user asks for them."
+)
+
 
 class LLMProvider(ABC):
     @abstractmethod
@@ -45,10 +50,7 @@ class OpenAILLMProvider(LLMProvider):
         prompt: PersonaSnapshot,
         user_input: str,
     ) -> str:
-        messages = [{"role": "system", "content": prompt.system_prompt}]
-        for item in history[-12:]:
-            messages.append({"role": item.role, "content": item.content_text})
-        messages.append({"role": "user", "content": user_input})
+        messages = _build_messages(history, prompt, user_input)
 
         completion = self.client.chat.completions.create(
             model=self.settings.llm_model,
@@ -70,13 +72,10 @@ class LMStudioLLMProvider(LLMProvider):
         prompt: PersonaSnapshot,
         user_input: str,
     ) -> str:
-        messages = [{"role": "system", "content": prompt.system_prompt}]
-        for item in history[-12:]:
-            messages.append({"role": item.role, "content": item.content_text})
-        messages.append({"role": "user", "content": user_input})
+        messages = _build_messages(history, prompt, user_input)
 
         completion = self.client.chat.completions.create(
-            model=self.settings.llm_model,
+            model=self.settings.lm_studio_model,
             temperature=prompt.temperature,
             messages=messages,
         )
@@ -118,10 +117,7 @@ class LocalLlamaCppProvider(LLMProvider):
         prompt: PersonaSnapshot,
         user_input: str,
     ) -> str:
-        messages = [{"role": "system", "content": prompt.system_prompt}]
-        for item in history[-12:]:
-            messages.append({"role": item.role, "content": item.content_text})
-        messages.append({"role": "user", "content": user_input})
+        messages = _build_messages(history, prompt, user_input)
 
         completion = self.client.create_chat_completion(
             messages=messages,
@@ -172,3 +168,12 @@ class LLMProviderRegistry:
             }
         )
         return build_llm_provider(scoped)
+
+
+def _build_messages(history: list[MessageRecord], prompt: PersonaSnapshot, user_input: str) -> list[dict[str, str]]:
+    system_prompt = f"{prompt.system_prompt.strip()}\n\n{PLAIN_TEXT_STYLE_INSTRUCTION}"
+    messages = [{"role": "system", "content": system_prompt}]
+    for item in history[-12:]:
+        messages.append({"role": item.role, "content": item.content_text})
+    messages.append({"role": "user", "content": user_input})
+    return messages

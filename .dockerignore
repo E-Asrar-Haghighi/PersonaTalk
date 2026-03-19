@@ -1,6 +1,0 @@
-.git
-.venv
-__pycache__
-backend/app/data
-frontend/node_modules
-frontend/dist

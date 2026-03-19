@@ -11,6 +11,8 @@ interface Props {
   canSend: boolean;
   isRecording: boolean;
   error: string | null;
+  pendingAssistantAudio: boolean;
+  latestAssistantTtsStatus: "none" | "pending" | "ready" | "failed" | null;
   devices: AudioInputDevice[];
   selectedDeviceId: string;
   onDraftChange: (value: string) => void;
@@ -32,6 +34,8 @@ export function ChatPane(props: Props) {
     canSend,
     isRecording,
     error,
+    pendingAssistantAudio,
+    latestAssistantTtsStatus,
     devices,
     selectedDeviceId,
     onDraftChange,
@@ -92,6 +96,10 @@ export function ChatPane(props: Props) {
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}
+      {pendingAssistantAudio ? <div className="status-banner">Generating voice reply in the background…</div> : null}
+      {latestAssistantTtsStatus === "failed" ? (
+        <div className="status-banner">Voice generation did not finish for the latest reply.</div>
+      ) : null}
 
       <div className="composer">
         <textarea

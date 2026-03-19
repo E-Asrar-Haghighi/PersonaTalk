@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS messages (
     role TEXT NOT NULL,
     content_text TEXT NOT NULL,
     audio_path TEXT,
+    tts_status TEXT NOT NULL DEFAULT 'none',
     transcript_source TEXT NOT NULL DEFAULT 'text',
     created_at TEXT NOT NULL,
     FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE CASCADE
@@ -72,6 +73,7 @@ def initialize_database() -> None:
     with db_cursor() as connection:
         connection.executescript(SCHEMA)
         _ensure_column(connection, "conversations", "llm_provider", "TEXT NOT NULL DEFAULT 'openai'")
+        _ensure_column(connection, "messages", "tts_status", "TEXT NOT NULL DEFAULT 'none'")
 
 
 def _ensure_column(connection: sqlite3.Connection, table: str, column: str, definition: str) -> None:

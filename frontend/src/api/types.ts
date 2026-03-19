@@ -41,6 +41,7 @@ export interface Message {
   role: Role;
   content_text: string;
   audio_path: string | null;
+  tts_status: "none" | "pending" | "ready" | "failed";
   transcript_source: "text" | "voice" | "voice-fallback";
   created_at: string;
 }

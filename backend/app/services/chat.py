@@ -1,3 +1,6 @@
+import logging
+from concurrent.futures import ThreadPoolExecutor
+
 from fastapi import HTTPException, UploadFile
 
 from ..providers.llm import LLMProviderRegistry
@@ -31,6 +34,7 @@ class ChatService:
         self.llm_registry = llm_registry
         self.stt_provider = stt_provider
         self.tts_provider = tts_provider
+        self._tts_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="personatalk-tts")
 
     def list_conversations(self, query: str | None = None) -> list[ConversationSummary]:
         return self.conversation_repository.list(query=query)
@@ -80,20 +84,21 @@ class ChatService:
         except Exception as exc:
             raise HTTPException(status_code=502, detail=f"LLM request failed: {exc}") from exc
 
-        assistant_audio = None
-        if payload.mode in ("voice", "mixed"):
-            try:
-                assistant_audio = self.tts_provider.synthesize(assistant_text, snapshot.voice_preference)
-            except Exception as exc:
-                assistant_text += f"\n\n[TTS unavailable: {exc}]"
-
         assistant_message = self.message_repository.create(
             conversation_id=conversation.id,
             role="assistant",
             content_text=assistant_text,
             transcript_source="text",
-            audio_path=assistant_audio,
+            audio_path=None,
+            tts_status="pending" if payload.mode in ("voice", "mixed") else "none",
         )
+
+        if payload.mode in ("voice", "mixed"):
+            self._queue_tts_generation(
+                assistant_message.id,
+                assistant_text,
+                snapshot.voice_preference,
+            )
 
         self.conversation_repository.touch(conversation.id)
         updated = self.conversation_repository.update(
@@ -153,18 +158,20 @@ class ChatService:
         except Exception as exc:
             raise HTTPException(status_code=502, detail=f"LLM request failed: {exc}") from exc
 
-        try:
-            audio_url = self.tts_provider.synthesize(assistant_text, snapshot.voice_preference)
-        except Exception as exc:
-            audio_url = None
-            assistant_text += f"\n\n[TTS unavailable: {exc}]"
-
         assistant_message = self.message_repository.create(
             conversation_id=conversation.id,
             role="assistant",
             content_text=assistant_text,
             transcript_source="text",
-            audio_path=audio_url,
+            audio_path=None,
+            tts_status="pending",
+        )
+
+        audio_url = None
+        self._queue_tts_generation(
+            assistant_message.id,
+            assistant_text,
+            snapshot.voice_preference,
         )
 
         self.conversation_repository.touch(conversation.id)
@@ -180,8 +187,23 @@ class ChatService:
             audio_url=audio_url,
         )
 
+    def _queue_tts_generation(self, message_id: str, content_text: str, voice_preference: str) -> None:
+        self._tts_executor.submit(self._generate_tts_for_message, message_id, content_text, voice_preference)
+
+    def _generate_tts_for_message(self, message_id: str, content_text: str, voice_preference: str) -> None:
+        try:
+            audio_path = self.tts_provider.synthesize(content_text, voice_preference)
+        except Exception:
+            logger.exception("Background TTS failed for message %s", message_id)
+            self.message_repository.update_tts_result(message_id, None, "failed")
+            return
+        self.message_repository.update_tts_result(message_id, audio_path, "ready")
+
     def _require_conversation(self, conversation_id: str) -> ConversationSummary:
         conversation = self.conversation_repository.get(conversation_id)
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found.")
         return conversation
+
+
+logger = logging.getLogger(__name__)

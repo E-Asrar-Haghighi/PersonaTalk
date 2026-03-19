@@ -52,6 +52,9 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const { isRecording, start, stop, devices, selectedDeviceId, setSelectedDeviceId, refreshDevices } = useRecorder();
   const activeConversation = conversations.find((item) => item.id === activeConversationId) ?? null;
+  const latestAssistantMessage = [...messages].reverse().find((message) => message.role === "assistant") ?? null;
+  const pendingAssistantAudio =
+    mode !== "text" && latestAssistantMessage?.tts_status === "pending";
 
   useEffect(() => {
     void bootstrap();
@@ -71,6 +74,48 @@ export default function App() {
       // Ignore localStorage failures and keep the app usable.
     }
   }, [llmProvider]);
+
+  useEffect(() => {
+    if (!activeConversationId || !pendingAssistantAudio) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    const poll = async () => {
+      attempts += 1;
+      try {
+        const refreshed = await api.getMessages(activeConversationId);
+        if (!cancelled) {
+          setMessages(refreshed);
+        }
+        const refreshedLatestAssistant = [...refreshed].reverse().find((message) => message.role === "assistant") ?? null;
+        const stillPending = refreshedLatestAssistant?.tts_status === "pending";
+        if (!cancelled && stillPending && attempts < maxAttempts) {
+          window.setTimeout(() => {
+            void poll();
+          }, 1200);
+        }
+      } catch {
+        if (!cancelled && attempts < maxAttempts) {
+          window.setTimeout(() => {
+            void poll();
+          }, 1800);
+        }
+      }
+    };
+
+    const timerId = window.setTimeout(() => {
+      void poll();
+    }, 900);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timerId);
+    };
+  }, [activeConversationId, pendingAssistantAudio]);
 
   async function bootstrap() {
     try {
@@ -311,6 +356,8 @@ export default function App() {
         canSend={Boolean(draftMessage.trim())}
         isRecording={isRecording}
         error={error}
+        pendingAssistantAudio={pendingAssistantAudio}
+        latestAssistantTtsStatus={latestAssistantMessage?.tts_status ?? null}
         devices={devices}
         selectedDeviceId={selectedDeviceId}
         onDraftChange={setDraftMessage}
