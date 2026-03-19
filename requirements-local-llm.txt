@@ -1,0 +1,2 @@
+-r requirements-local-cpu.txt
+llama-cpp-python==0.3.16

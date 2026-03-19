@@ -98,6 +98,7 @@ async def send_voice(
     system_prompt_override: str | None = None,
     temperature_override: float | None = None,
     voice_preference_override: str | None = None,
+    llm_provider_override: str | None = None,
     service: ChatService = Depends(get_chat_service),
 ):
     return await service.send_voice_message(
@@ -106,6 +107,7 @@ async def send_voice(
         system_prompt_override=system_prompt_override,
         temperature_override=temperature_override,
         voice_preference_override=voice_preference_override,
+        llm_provider_override=llm_provider_override,
     )
 
 

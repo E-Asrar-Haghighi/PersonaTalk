@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS conversations (
     persona_id TEXT,
     persona_name TEXT,
     persona_snapshot TEXT NOT NULL,
+    llm_provider TEXT NOT NULL DEFAULT 'openai',
     temperature REAL NOT NULL,
     voice_preference TEXT NOT NULL,
     mode TEXT NOT NULL DEFAULT 'text',
@@ -70,3 +71,11 @@ def db_cursor():
 def initialize_database() -> None:
     with db_cursor() as connection:
         connection.executescript(SCHEMA)
+        _ensure_column(connection, "conversations", "llm_provider", "TEXT NOT NULL DEFAULT 'openai'")
+
+
+def _ensure_column(connection: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+    rows = connection.execute(f"PRAGMA table_info({table})").fetchall()
+    existing = {row["name"] for row in rows}
+    if column not in existing:
+        connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")

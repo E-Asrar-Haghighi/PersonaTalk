@@ -18,6 +18,14 @@ class Settings(BaseSettings):
     llm_provider: str = "mock"
     llm_model: str = "gpt-4o-mini"
     openai_api_key: str | None = None
+    lm_studio_base_url: str = "http://127.0.0.1:1234/v1"
+    lm_studio_model: str = "meta-llama-3.1-8b-instruct"
+    local_llm_model_path: Path | None = None
+    local_llm_chat_format: str | None = None
+    local_llm_n_ctx: int = 4096
+    local_llm_n_threads: int = 6
+    local_llm_n_gpu_layers: int = 0
+    local_llm_max_tokens: int = 512
     stt_provider: str = "mock"
     stt_model: str = "base"
     whisper_compute_type: str = "int8"

@@ -9,7 +9,7 @@ from ..schemas.chat import ConversationCreate, ConversationSummary, Conversation
 class ConversationRepository:
     def list(self, query: str | None = None) -> list[ConversationSummary]:
         sql = """
-            SELECT c.id, c.title, c.persona_id, c.persona_name, c.persona_snapshot, c.temperature,
+            SELECT c.id, c.title, c.persona_id, c.persona_name, c.persona_snapshot, c.llm_provider, c.temperature,
                    c.voice_preference, c.mode, c.created_at, c.updated_at,
                    COALESCE(
                      (
@@ -44,7 +44,7 @@ class ConversationRepository:
         with db_cursor() as connection:
             row = connection.execute(
                 """
-                SELECT c.id, c.title, c.persona_id, c.persona_name, c.persona_snapshot, c.temperature,
+                SELECT c.id, c.title, c.persona_id, c.persona_name, c.persona_snapshot, c.llm_provider, c.temperature,
                        c.voice_preference, c.mode, c.created_at, c.updated_at,
                        COALESCE(
                          (
@@ -70,9 +70,9 @@ class ConversationRepository:
             connection.execute(
                 """
                 INSERT INTO conversations (
-                    id, title, persona_id, persona_name, persona_snapshot, temperature,
+                    id, title, persona_id, persona_name, persona_snapshot, llm_provider, temperature,
                     voice_preference, mode, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     conversation_id,
@@ -80,6 +80,7 @@ class ConversationRepository:
                     payload.persona_id,
                     payload.persona_snapshot.name,
                     payload.persona_snapshot.model_dump_json(),
+                    payload.llm_provider,
                     payload.persona_snapshot.temperature,
                     payload.persona_snapshot.voice_preference,
                     payload.mode,
@@ -97,6 +98,7 @@ class ConversationRepository:
         snapshot = payload.persona_snapshot or current.persona_snapshot
         title = payload.title or current.title
         mode = payload.mode or current.mode
+        llm_provider = payload.llm_provider or current.llm_provider
         persona_id = payload.persona_id if payload.persona_id is not None else current.persona_id
         updated_at = datetime.now(UTC).isoformat()
 
@@ -104,7 +106,7 @@ class ConversationRepository:
             connection.execute(
                 """
                 UPDATE conversations
-                SET title = ?, persona_id = ?, persona_name = ?, persona_snapshot = ?, temperature = ?,
+                SET title = ?, persona_id = ?, persona_name = ?, persona_snapshot = ?, llm_provider = ?, temperature = ?,
                     voice_preference = ?, mode = ?, updated_at = ?
                 WHERE id = ?
                 """,
@@ -113,6 +115,7 @@ class ConversationRepository:
                     persona_id,
                     snapshot.name,
                     snapshot.model_dump_json(),
+                    llm_provider,
                     snapshot.temperature,
                     snapshot.voice_preference,
                     mode,

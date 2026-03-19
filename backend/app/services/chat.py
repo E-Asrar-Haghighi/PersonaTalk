@@ -1,6 +1,6 @@
 from fastapi import HTTPException, UploadFile
 
-from ..providers.llm import LLMProvider
+from ..providers.llm import LLMProviderRegistry
 from ..providers.speech import STTProvider, TTSProvider
 from ..repositories.conversations import ConversationRepository
 from ..repositories.messages import MessageRepository
@@ -21,14 +21,14 @@ class ChatService:
         conversation_repository: ConversationRepository,
         message_repository: MessageRepository,
         persona_repository: PersonaRepository,
-        llm_provider: LLMProvider,
+        llm_registry: LLMProviderRegistry,
         stt_provider: STTProvider,
         tts_provider: TTSProvider,
     ) -> None:
         self.conversation_repository = conversation_repository
         self.message_repository = message_repository
         self.persona_repository = persona_repository
-        self.llm_provider = llm_provider
+        self.llm_registry = llm_registry
         self.stt_provider = stt_provider
         self.tts_provider = tts_provider
 
@@ -72,8 +72,11 @@ class ChatService:
         )
 
         history = self.message_repository.list_for_conversation(conversation.id)
+        llm_provider_name = payload.llm_provider_override or conversation.llm_provider
         try:
-            assistant_text = self.llm_provider.reply(conversation, history[:-1], snapshot, payload.content_text)
+            assistant_text = self.llm_registry.get(llm_provider_name).reply(
+                conversation, history[:-1], snapshot, payload.content_text
+            )
         except Exception as exc:
             raise HTTPException(status_code=502, detail=f"LLM request failed: {exc}") from exc
 
@@ -95,7 +98,7 @@ class ChatService:
         self.conversation_repository.touch(conversation.id)
         updated = self.conversation_repository.update(
             conversation.id,
-            ConversationUpdate(mode=payload.mode, persona_snapshot=snapshot),
+            ConversationUpdate(mode=payload.mode, persona_snapshot=snapshot, llm_provider=llm_provider_name),
         )
         return SendMessageResponse(conversation=updated, user_message=user_message, assistant_message=assistant_message)
 
@@ -106,6 +109,7 @@ class ChatService:
         system_prompt_override: str | None,
         temperature_override: float | None,
         voice_preference_override: str | None,
+        llm_provider_override: str | None,
     ) -> VoiceReplyResponse:
         conversation = self._require_conversation(conversation_id)
         audio_bytes = await audio.read()
@@ -140,9 +144,12 @@ class ChatService:
             transcript_source=transcript_source,
         )
         history = self.message_repository.list_for_conversation(conversation.id)
+        llm_provider_name = llm_provider_override or conversation.llm_provider
 
         try:
-            assistant_text = self.llm_provider.reply(conversation, history[:-1], snapshot, transcript)
+            assistant_text = self.llm_registry.get(llm_provider_name).reply(
+                conversation, history[:-1], snapshot, transcript
+            )
         except Exception as exc:
             raise HTTPException(status_code=502, detail=f"LLM request failed: {exc}") from exc
 
@@ -163,7 +170,7 @@ class ChatService:
         self.conversation_repository.touch(conversation.id)
         updated = self.conversation_repository.update(
             conversation.id,
-            ConversationUpdate(mode="mixed", persona_snapshot=snapshot),
+            ConversationUpdate(mode="mixed", persona_snapshot=snapshot, llm_provider=llm_provider_name),
         )
         return VoiceReplyResponse(
             conversation=updated,
