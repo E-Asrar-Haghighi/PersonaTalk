@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 Mode = Literal["text", "voice", "mixed"]
 Role = Literal["system", "user", "assistant"]
 TranscriptSource = Literal["text", "voice", "voice-fallback"]
+TTSStatus = Literal["none", "pending", "ready", "failed"]
 
 
 class PersonaSnapshot(BaseModel):
@@ -63,6 +64,7 @@ class MessageRecord(BaseModel):
     role: Role
     content_text: str
     audio_path: str | None = None
+    tts_status: TTSStatus = "none"
     transcript_source: TranscriptSource = "text"
     created_at: datetime
 

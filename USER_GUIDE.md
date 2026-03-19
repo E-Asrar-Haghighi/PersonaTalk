@@ -1,217 +1,213 @@
 # PersonaTalk User Guide
 
-## What PersonaTalk Is
+## What PersonaTalk Does
 
-PersonaTalk is a local-first app for talking with saved personas using text, voice, or both in the same conversation. You can choose which model powers each conversation, save past chats, and keep using the same persona setup later.
+PersonaTalk lets you talk with saved personas using text, voice, or mixed mode in the same conversation. You can choose the model for each conversation, save past chats, search them later, and keep using the same persona setup over time.
 
 ## Main Layout
 
 ### Left panel
 
-- View saved conversations
-- Search chats by title or message text
 - Start a new chat
+- Browse saved conversations
+- Search by title or message text
 - Delete old chats
 
 ### Center panel
 
 - Read the active conversation
-- Type messages
-- Use push-to-talk for voice input
-- Choose which microphone to use
-- See the active model badge in the chat header
+- Type a message
+- Switch between `text`, `voice`, and `mixed`
+- Choose the microphone
+- Use `Push to talk`
+- See the active model badge in the header
+- Listen to assistant audio replies when available
 
 ### Right panel
 
-- Select a saved persona
-- Edit persona name and prompt
-- Adjust temperature
-- Choose assistant voice
+- Choose a saved persona
+- Edit the persona name
+- Edit the system prompt
+- Change temperature
+- Choose male or female assistant voice
 - Choose the active model provider
 
-## Choosing a Model
+## Models
 
-PersonaTalk lets you choose the model per conversation.
+PersonaTalk supports three model paths.
 
 ### GPT-4o mini
 
-Use this when you want the fastest and smoothest response quality.
-
-- Requires an OpenAI API key
-- Cloud-based, not local
+- fastest and smoothest in most cases
+- uses OpenAI
+- requires a valid API key
 
 ### LM Studio Local
 
-Use this when you want a local model and already have LM Studio serving a model on your machine.
-
-- Fully local inference through LM Studio
-- Usually the best local-performance choice on a GPU laptop
+- fully local through LM Studio
+- usually the best local-performance option if your LM Studio model already uses your GPU
+- requires LM Studio’s local server to be running
 
 ### Local GGUF
 
-Use this when you want PersonaTalk itself to load a local GGUF model directly.
+- fully local inside PersonaTalk
+- uses a GGUF file directly
+- often slower than LM Studio on Windows if it is running CPU-first
 
-- Fully local
-- Can be slower than LM Studio depending on your machine and install
+## Starting a Conversation
 
-## Starting a Chat
-
-1. Pick or create a persona in the right panel.
-2. Pick the model you want that conversation to use.
+1. Pick a persona on the right.
+2. Pick the model you want.
 3. Click `New chat`.
-4. Type a message or use the voice button.
+4. Choose `text`, `voice`, or `mixed`.
+5. Send a message.
 
-## Persona Settings
+## Personas
 
 Each persona includes:
 
-- Name
-- System prompt
-- Temperature
-- Voice preference
+- name
+- system prompt
+- temperature
+- voice preference
 
 Important behavior:
 
-- The conversation stores a snapshot of the persona settings used at the time
-- If you edit the saved persona later, old conversations still keep their original snapshot
+- each conversation stores a snapshot of the persona settings used for that chat
+- changing the saved persona later does not rewrite old conversations
 
-## Switching Models
-
-You can switch between:
-
-- `GPT-4o mini`
-- `LM Studio Local`
-- `Local GGUF`
-
-The selected model:
-
-- is shown in the center header badge
-- is saved with the conversation
-- is restored when you reopen that chat
-
-## Voice Chat
-
-### Input
+## Voice Input
 
 - Click `Push to talk` to start recording
 - Click again to stop and send
 - The selected microphone from the dropdown is used
-- Your voice is transcribed into text and stored in the conversation
+- Voice is transcribed into text and saved in the conversation
 
-### Output
+## Voice Output
 
-- The assistant reply appears as text
-- The app also tries to generate local audio with Kokoro
-- Audio replies appear with a built-in player in the chat
+- In `voice` and `mixed` mode, the assistant reply appears as text first
+- Kokoro then generates the spoken reply in the background
+- When the audio is ready, the player appears on that latest assistant message
+- If voice generation fails, the text reply still stays in the chat
 
 ## Microphone Selection
 
-PersonaTalk includes a microphone selector in the composer area.
+- Use the microphone dropdown above the composer actions
+- Click `Refresh mics` if you plug in a device after opening the app
+- The selected microphone is remembered across reloads
 
-- Pick your external mic or laptop mic
-- Click `Refresh mics` if you plugged a device in after opening the app
-- Your selected mic is remembered across reloads
+## Model Selection
+
+- Choose the model from the right panel
+- The current choice is shown in the chat header badge
+- The selected model is saved with that conversation
+- Reopening the chat restores the same model choice
 
 ## Conversation History
 
 You can:
 
-- reopen old chats
-- search them
+- reopen chats
 - continue them
+- search them
 - delete them
 
 When you reopen a conversation, PersonaTalk restores:
 
-- the persona snapshot
-- the temperature
-- the voice preference
-- the model choice
+- persona snapshot
+- temperature
+- voice preference
+- model choice
+- mode
 
-## Recommended Ways To Use It
+## Good Defaults
 
-### Fastest setup
+### Fastest normal use
 
-- `GPT-4o mini`
-- local Whisper STT
-- local Kokoro TTS
+- model: `GPT-4o mini`
+- STT: Whisper `base`
+- TTS: Kokoro
+- mode: `text` or `mixed`
 
 ### Best local GPU workflow
 
-- `LM Studio Local`
-- local Whisper STT
-- local Kokoro TTS
+- model: `LM Studio Local`
+- STT: Whisper `base`
+- TTS: Kokoro
 
-### Most self-contained
+### Most self-contained local stack
 
-- `Local GGUF`
-- local Whisper STT
-- local Kokoro TTS
+- model: `Local GGUF`
+- STT: Whisper `base`
+- TTS: Kokoro
 
-## If Something Is Slow
+## If Something Feels Slow
+
+### GPT-4o mini in mixed mode
+
+- text should appear first
+- Kokoro audio still takes extra time afterward
+- `text` mode is still the fastest path overall
 
 ### Local GGUF feels slow
 
-That is normal if it is running CPU-first. LM Studio is often faster for local GPU usage on Windows laptops.
+- that is normal when it is CPU-first
+- LM Studio is usually faster for local GPU use on Windows
 
 ### Voice transcription feels slow
 
 Try:
 
-- a smaller Whisper model
 - shorter recordings
 - less background CPU load
+- `STT_MODEL=tiny` if you want more speed
 
-### TTS fails
-
-Check that your Python environment includes the Kokoro dependencies and restart the backend.
-
-## If Something Is Not Working
+## If Something Fails
 
 ### OpenAI replies fail
 
 Check:
 
 - `OPENAI_API_KEY`
-- `LLM_PROVIDER`
 - internet access
+- `GPT-4o mini` is selected
 
 ### LM Studio replies fail
 
 Check:
 
-- LM Studio is running
-- its local server is enabled
+- LM Studio is open
+- the local server is enabled
 - the model is loaded
-- `LM_STUDIO_BASE_URL` matches your LM Studio server
+- `http://127.0.0.1:1234/v1/models` responds
 
 ### Local GGUF replies fail
 
 Check:
 
 - `LOCAL_LLM_MODEL_PATH`
-- the GGUF file exists
-- the model can fit in your current memory budget
+- the file exists
+- the model fits your available memory
 
 ### Microphone list is empty
 
 Check:
 
 - browser microphone permission
-- OS microphone permission
-- whether the device appears after clicking `Refresh mics`
+- Windows microphone permission
+- `Refresh mics`
 
-## Good Defaults
+### TTS does not finish
 
-For most users:
+Check:
 
-- Model: `GPT-4o mini` or `LM Studio Local`
-- STT: Whisper `base`
-- TTS: Kokoro default voices
-- Temperature: `0.7`
+- the backend was restarted
+- Kokoro dependencies are installed
+- the app shows whether the latest voice generation failed
 
-## Final Notes
+## Notes
 
+- The selected microphone is remembered across reloads
+- The selected model is remembered across reloads
 - Old chats preserve their original persona snapshot
-- The selected mic and selected model are remembered across reloads
-- Audio playback logs with `206 Partial Content` are normal browser behavior
+- Audio playback requests that log `206 Partial Content` are normal browser behavior
