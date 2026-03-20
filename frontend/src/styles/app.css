@@ -227,6 +227,44 @@ button {
   white-space: pre-wrap;
 }
 
+.message__rich-text {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.message__rich-text p,
+.message__rich-text h1,
+.message__rich-text h2,
+.message__rich-text h3,
+.message__rich-text h4,
+.message__rich-text ul,
+.message__rich-text ol {
+  margin: 0;
+}
+
+.message__rich-text h1,
+.message__rich-text h2,
+.message__rich-text h3,
+.message__rich-text h4 {
+  font-size: 0.98rem;
+  line-height: 1.35;
+  color: #223653;
+}
+
+.message__rich-text p {
+  white-space: pre-wrap;
+}
+
+.message__rich-text ul,
+.message__rich-text ol {
+  padding-left: 22px;
+}
+
+.message__rich-text li + li {
+  margin-top: 6px;
+}
+
 .message__actions,
 .message-edit__actions {
   margin-top: 10px;
