@@ -1,5 +1,6 @@
 import math
 import logging
+import re
 import struct
 import time
 import wave
@@ -178,14 +179,27 @@ class KokoroLocalTTSProvider(TTSProvider):
         logger.info("TTS started with Kokoro voice=%s", voice)
         started_at = time.perf_counter()
         pipeline = self._get_pipeline(voice)
-        result = pipeline.run(text)
+        chunks = _chunk_tts_text(text, self.settings.tts_chunk_char_limit)
+        if not chunks:
+            raise RuntimeError("TTS received an empty reply after cleanup.")
+
+        result = pipeline.run(chunks[0])
+        audio_parts = [result.audio]
+        sample_rate = result.sample_rate
+
+        for chunk in chunks[1:]:
+            chunk_result = pipeline.run(chunk)
+            if chunk_result.sample_rate != sample_rate:
+                raise RuntimeError("Kokoro returned inconsistent sample rates across chunks.")
+            audio_parts.append(_silence_gap(sample_rate))
+            audio_parts.append(chunk_result.audio)
 
         filename = f"{uuid4()}.wav"
         destination = self.audio_cache_dir / filename
 
         import soundfile as sf
 
-        sf.write(str(destination), result.audio, result.sample_rate)
+        sf.write(str(destination), _merge_audio(audio_parts), sample_rate)
         logger.info("TTS completed in %.2fs", time.perf_counter() - started_at)
         return f"/api/audio/{filename}"
 
@@ -231,3 +245,69 @@ def build_tts_provider(settings: Settings) -> TTSProvider:
     if settings.tts_provider == "kokoro":
         return KokoroLocalTTSProvider(settings)
     return PlaceholderTTSProvider(settings)
+
+
+def _chunk_tts_text(text: str, chunk_char_limit: int) -> list[str]:
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    if not cleaned:
+        return []
+    if len(cleaned) <= chunk_char_limit:
+        return [cleaned]
+
+    sentences = re.split(r"(?<=[.!?])\s+", cleaned)
+    chunks: list[str] = []
+    current = ""
+
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        if len(sentence) > chunk_char_limit:
+            if current:
+                chunks.append(current)
+                current = ""
+            chunks.extend(_split_long_sentence(sentence, chunk_char_limit))
+            continue
+
+        candidate = f"{current} {sentence}".strip()
+        if current and len(candidate) > chunk_char_limit:
+            chunks.append(current)
+            current = sentence
+        else:
+            current = candidate
+
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _split_long_sentence(sentence: str, chunk_char_limit: int) -> list[str]:
+    words = sentence.split()
+    chunks: list[str] = []
+    current = ""
+
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if current and len(candidate) > chunk_char_limit:
+            chunks.append(current)
+            current = word
+        else:
+            current = candidate
+
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _silence_gap(sample_rate: int):
+    import numpy as np
+
+    return np.zeros(int(sample_rate * 0.12), dtype="float32")
+
+
+def _merge_audio(audio_parts: list):
+    import numpy as np
+
+    if len(audio_parts) == 1:
+        return audio_parts[0]
+    return np.concatenate(audio_parts)

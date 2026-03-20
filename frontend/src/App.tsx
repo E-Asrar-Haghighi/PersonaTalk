@@ -94,11 +94,10 @@ export default function App() {
     }
 
     let cancelled = false;
-    let attempts = 0;
-    const maxAttempts = 30;
+    const startedAt = Date.now();
+    const maxPollWindowMs = 3 * 60 * 1000;
 
     const poll = async () => {
-      attempts += 1;
       try {
         const refreshed = await api.getMessages(activeConversationId);
         if (!cancelled) {
@@ -106,13 +105,15 @@ export default function App() {
         }
         const refreshedLatestAssistant = [...refreshed].reverse().find((message) => message.role === "assistant") ?? null;
         const stillPending = refreshedLatestAssistant?.tts_status === "pending";
-        if (!cancelled && stillPending && attempts < maxAttempts) {
+        const withinPollWindow = Date.now() - startedAt < maxPollWindowMs;
+        if (!cancelled && stillPending && withinPollWindow) {
           window.setTimeout(() => {
             void poll();
           }, 1200);
         }
       } catch {
-        if (!cancelled && attempts < maxAttempts) {
+        const withinPollWindow = Date.now() - startedAt < maxPollWindowMs;
+        if (!cancelled && withinPollWindow) {
           window.setTimeout(() => {
             void poll();
           }, 1800);

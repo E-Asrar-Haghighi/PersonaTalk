@@ -1,3 +1,4 @@
+import re
 from abc import ABC, abstractmethod
 from functools import lru_cache
 
@@ -8,7 +9,8 @@ from ..schemas.chat import ConversationSummary, MessageRecord, PersonaSnapshot
 
 PLAIN_TEXT_STYLE_INSTRUCTION = (
     "Respond in plain conversational text by default. "
-    "Avoid Markdown headings, bullet lists, and heavy formatting unless the user asks for them."
+    "Avoid Markdown headings, bullet lists, bold markers, and heavy formatting unless the user asks for them. "
+    "If you need a list, write it in simple plain text."
 )
 
 
@@ -32,7 +34,7 @@ class MockLLMProvider(LLMProvider):
         prompt: PersonaSnapshot,
         user_input: str,
     ) -> str:
-        return (
+        return _normalize_assistant_text(
             f"{prompt.name} says: I heard '{user_input}'. "
             f"This is a local mock reply for '{conversation.title}', so the app is usable before provider wiring."
         )
@@ -57,7 +59,7 @@ class OpenAILLMProvider(LLMProvider):
             temperature=prompt.temperature,
             messages=messages,
         )
-        return completion.choices[0].message.content or ""
+        return _normalize_assistant_text(completion.choices[0].message.content or "")
 
 
 class LMStudioLLMProvider(LLMProvider):
@@ -79,7 +81,7 @@ class LMStudioLLMProvider(LLMProvider):
             temperature=prompt.temperature,
             messages=messages,
         )
-        return completion.choices[0].message.content or ""
+        return _normalize_assistant_text(completion.choices[0].message.content or "")
 
 
 class LocalLlamaCppProvider(LLMProvider):
@@ -125,7 +127,7 @@ class LocalLlamaCppProvider(LLMProvider):
             max_tokens=self.settings.local_llm_max_tokens,
         )
         content = completion["choices"][0]["message"]["content"]
-        return content or ""
+        return _normalize_assistant_text(content or "")
 
 
 def build_llm_provider(settings: Settings) -> LLMProvider:
@@ -177,3 +179,32 @@ def _build_messages(history: list[MessageRecord], prompt: PersonaSnapshot, user_
         messages.append({"role": item.role, "content": item.content_text})
     messages.append({"role": "user", "content": user_input})
     return messages
+
+
+def _normalize_assistant_text(text: str) -> str:
+    normalized = text.replace("\r\n", "\n").strip()
+    if not normalized:
+        return ""
+
+    normalized = re.sub(r"```(?:[\w+-]+\n)?", "", normalized)
+    normalized = normalized.replace("```", "")
+    normalized = re.sub(r"`([^`]+)`", r"\1", normalized)
+    normalized = re.sub(r"\*\*(.*?)\*\*", r"\1", normalized, flags=re.DOTALL)
+    normalized = re.sub(r"__(.*?)__", r"\1", normalized, flags=re.DOTALL)
+    normalized = re.sub(r"(?<!\*)\*(?!\s)(.*?)(?<!\s)\*(?!\*)", r"\1", normalized, flags=re.DOTALL)
+    normalized = re.sub(r"(?<!_)_(?!\s)(.*?)(?<!\s)_(?!_)", r"\1", normalized, flags=re.DOTALL)
+
+    cleaned_lines: list[str] = []
+    for raw_line in normalized.split("\n"):
+        line = raw_line.strip()
+        if not line:
+            cleaned_lines.append("")
+            continue
+        line = re.sub(r"^#{1,6}\s+", "", line)
+        line = re.sub(r"^>\s+", "", line)
+        line = re.sub(r"^\s*(?:[-*+]|\d+[.)-])\s+", "", line)
+        cleaned_lines.append(line)
+
+    collapsed = "\n".join(cleaned_lines)
+    collapsed = re.sub(r"\n{3,}", "\n\n", collapsed)
+    return collapsed.strip()
