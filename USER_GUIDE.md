@@ -23,6 +23,7 @@ PersonaTalk lets you talk with saved personas using text, voice, or mixed mode i
 - Enable microphone access so the real microphone names appear
 - Use `Push to talk`
 - See the active model badge in the header
+- Assistant replies can show lightweight formatting like bold text, headings, and lists
 - Listen to assistant audio replies when available
 - Edit the latest user message or transcript and regenerate the reply
 
@@ -90,9 +91,11 @@ Important behavior:
 ## Voice Output
 
 - In `voice` and `mixed` mode, the assistant reply appears as text first
+- Assistant replies may display lightweight formatting when the model returns structured output
 - Kokoro then generates the spoken reply in the background
 - When the audio is ready, the player appears on that latest assistant message
 - If voice generation fails, the text reply still stays in the chat
+- If long replies take too long for voice generation on your machine, increase `TTS_TIMEOUT_SECONDS` in `.env`
 
 ## Microphone Selection
 
@@ -216,6 +219,7 @@ Check:
 
 - the backend was restarted
 - Kokoro dependencies are installed
+- `TTS_TIMEOUT_SECONDS` in `.env` is high enough for longer replies on your hardware
 - the app shows whether the latest voice generation failed
 
 ## Notes

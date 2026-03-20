@@ -1,4 +1,5 @@
 import { API_BASE } from "../api/client";
+import ReactMarkdown from "react-markdown";
 import type { ChatMode, LLMProvider, Message } from "../api/types";
 import type { AudioInputDevice } from "../hooks/useRecorder";
 
@@ -124,6 +125,8 @@ export function ChatPane(props: Props) {
                     </button>
                   </div>
                 </div>
+              ) : message.role === "assistant" ? (
+                <FormattedAssistantMessage text={message.content_text} />
               ) : (
                 <p>{message.content_text}</p>
               )}
@@ -187,4 +190,50 @@ export function ChatPane(props: Props) {
       </div>
     </main>
   );
+}
+
+function FormattedAssistantMessage({ text }: { text: string }) {
+  const markdown = toDisplayMarkdown(text);
+
+  return (
+    <div className="message__rich-text">
+      <ReactMarkdown>{markdown}</ReactMarkdown>
+    </div>
+  );
+}
+
+function toDisplayMarkdown(text: string): string {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const normalizedLines: string[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const rawLine = lines[index];
+    const trimmed = rawLine.trim();
+    if (!trimmed) {
+      normalizedLines.push("");
+      continue;
+    }
+
+    if (/^[-*+]\s+/.test(trimmed) || /^\d+[.)]\s+/.test(trimmed) || /^#{1,6}\s+/.test(trimmed)) {
+      normalizedLines.push(trimmed);
+      continue;
+    }
+
+    const headingMatch = trimmed.match(/^([A-Z][A-Za-z0-9/&(),'\-\s]{1,80}):$/);
+    if (headingMatch) {
+      normalizedLines.push(`### ${headingMatch[1].trim()}`);
+      continue;
+    }
+
+    const labelMatch = trimmed.match(/^([A-Z][A-Za-z0-9/&(),'\-\s]{1,80}):\s+(.+)$/);
+    if (labelMatch) {
+      normalizedLines.push(`**${labelMatch[1].trim()}:** ${labelMatch[2].trim()}`);
+      continue;
+    }
+
+    normalizedLines.push(rawLine);
+  }
+
+  const markdown = normalizedLines.join("\n");
+  return markdown.replace(/\n{3,}/g, "\n\n").trim();
 }

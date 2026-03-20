@@ -9,8 +9,8 @@ from ..schemas.chat import ConversationSummary, MessageRecord, PersonaSnapshot
 
 PLAIN_TEXT_STYLE_INSTRUCTION = (
     "Respond in plain conversational text by default. "
-    "Avoid Markdown headings, bullet lists, bold markers, and heavy formatting unless the user asks for them. "
-    "If you need a list, write it in simple plain text."
+    "Avoid Markdown headings and heavy formatting unless the user asks for them. "
+    "Light emphasis like bold text is okay when it helps readability."
 )
 
 
@@ -189,10 +189,6 @@ def _normalize_assistant_text(text: str) -> str:
     normalized = re.sub(r"```(?:[\w+-]+\n)?", "", normalized)
     normalized = normalized.replace("```", "")
     normalized = re.sub(r"`([^`]+)`", r"\1", normalized)
-    normalized = re.sub(r"\*\*(.*?)\*\*", r"\1", normalized, flags=re.DOTALL)
-    normalized = re.sub(r"__(.*?)__", r"\1", normalized, flags=re.DOTALL)
-    normalized = re.sub(r"(?<!\*)\*(?!\s)(.*?)(?<!\s)\*(?!\*)", r"\1", normalized, flags=re.DOTALL)
-    normalized = re.sub(r"(?<!_)_(?!\s)(.*?)(?<!\s)_(?!_)", r"\1", normalized, flags=re.DOTALL)
 
     cleaned_lines: list[str] = []
     for raw_line in normalized.split("\n"):
@@ -202,7 +198,6 @@ def _normalize_assistant_text(text: str) -> str:
             continue
         line = re.sub(r"^#{1,6}\s+", "", line)
         line = re.sub(r"^>\s+", "", line)
-        line = re.sub(r"^\s*(?:[-*+]|\d+[.)-])\s+", "", line)
         cleaned_lines.append(line)
 
     collapsed = "\n".join(cleaned_lines)

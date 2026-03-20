@@ -15,6 +15,7 @@ PersonaTalk is a local-first single-user web app for chatting with saved AI pers
 - Choose the active microphone from the UI
 - Edit the latest user message or transcript and regenerate the reply in place
 - Pick male or female Kokoro voice output
+- Render assistant replies with lightweight formatting such as bold text, headings, and lists
 - Keep persona snapshots and model choice with each conversation
 - Return assistant text first in mixed mode, then attach voice output when TTS finishes
 
@@ -147,6 +148,7 @@ STT_TIMEOUT_SECONDS=180
 ### Kokoro TTS
 
 ```env
+TTS_TIMEOUT_SECONDS=180
 TTS_PROVIDER=kokoro
 TTS_MODEL=kokoro-82m
 KOKORO_PROVIDER=auto
@@ -155,6 +157,11 @@ KOKORO_VOICE_FEMALE=af_heart
 KOKORO_LANG=en-us
 KOKORO_SPEED=0.9
 ```
+
+Notes:
+
+- if long voice replies time out on your machine, increase `TTS_TIMEOUT_SECONDS` in `.env`
+- `.env.example` already includes a safe starting value you can copy and adjust
 
 ## Model Modes
 
@@ -180,6 +187,7 @@ KOKORO_SPEED=0.9
 
 - Voice input is always stored as text in the conversation
 - In `voice` and `mixed` mode, assistant text appears first
+- Assistant replies can display lightweight formatting when the model returns structured output
 - Kokoro audio is generated in the background and attached to the latest assistant message when ready
 - If TTS fails, the latest reply is still kept as text and the UI shows that voice generation did not finish
 - Before the first recording, the UI can ask for microphone access so the real device names appear instead of generic labels
@@ -269,6 +277,7 @@ Check:
 
 - your venv includes the speech dependencies
 - the backend was restarted after dependency changes
+- if long replies need more time, raise `TTS_TIMEOUT_SECONDS` in `.env`
 - if voice generation stalls, the app should now resolve the latest reply as failed instead of staying pending forever
 
 ## Practical Notes
