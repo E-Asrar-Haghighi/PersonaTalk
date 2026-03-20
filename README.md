@@ -291,4 +291,3 @@ Check:
 
 - `206 Partial Content` logs for audio playback are normal
 - selected microphone and selected model persist across reloads
-- if an API key was exposed during development, rotate it
