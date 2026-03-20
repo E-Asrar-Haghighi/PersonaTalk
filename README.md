@@ -205,7 +205,7 @@ Notes:
 - Editing the right panel only affects future turns
 - Deleting a saved persona does not break old chats because the snapshot stays with the conversation
 - The latest user message can be edited and regenerated in place
-- The latest conversation title can be renamed from the sidebar
+- The conversation title can be renamed from the sidebar
 
 ## UI Summary
 
