@@ -23,9 +23,10 @@ A few product details I’m happy with:
 
 - you can edit the latest message or transcript and regenerate the reply in the same thread
 - each conversation keeps its own persona snapshot and model choice
+- assistant replies support lightweight formatting for better readability
 - the app supports a mostly local or fully local workflow, depending on the provider path you choose
 
-This project was a good reminder that building AI apps is not only about the model itself. A lot of the real work is in UX, local tooling, state management, and making the whole flow feel smooth.
+This project was a good reminder that building AI apps is not only about the model itself. A lot of the real work is in UX, local tooling, state management, readable outputs, and making the whole flow feel smooth.
 
 I’m still polishing it, but the MVP is working and the repo is almost ready to publish.
 
@@ -55,7 +56,7 @@ Tech stack:
 - Kokoro
 - OpenAI / LM Studio / local GGUF
 
-The most interesting part was making the UX feel coherent across text, voice, and local model options.
+The most interesting part was making the UX feel coherent across text, voice, and local model options, including readable formatted replies and practical tuning for longer local TTS responses.
 
 Now finishing the last GitHub polish pass before publishing the repo.
 
