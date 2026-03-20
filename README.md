@@ -2,6 +2,13 @@
 
 PersonaTalk is a local-first single-user web app for chatting with saved AI personas by text, voice, or mixed mode. It uses a FastAPI backend, a React/TypeScript frontend, SQLite persistence, local Whisper STT, local Kokoro TTS, and selectable LLM providers so you can run cloud, mostly local, or fully local conversation stacks.
 
+<p align="center">
+  <img src="assets/images/1.png" width="700"/>
+  <img src="assets/images/2.png" width="700"/>
+  <img src="assets/images/3.png" width="700"/>
+  <img src="assets/images/4.png" width="700"/>
+</p>
+
 ## Features
 
 - Create, save, edit, reuse, and delete personas
